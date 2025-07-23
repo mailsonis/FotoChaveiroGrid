@@ -408,7 +408,7 @@ function GridChaveiro() {
             <CardHeader className="p-0 mb-6">
               <CardTitle className="font-headline text-3xl font-bold text-primary">Grid de Imagens para Chaveiro</CardTitle>
               <CardDescription className="text-muted-foreground">
-                Crie uma grade com várias fotos para seus chaveiros. Permite ajustar cada imagem individualmente.
+                Permitir ajustar cada imagem individual conforme desejado.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 space-y-6">
@@ -520,7 +520,7 @@ function GridChaveiro() {
 
 export default function Home() {
   return (
-    <main className="min-h-screen w-full bg-background font-body text-foreground flex items-center justify-center p-4">
+    <main className="min-h-screen w-full bg-background font-body text-foreground flex flex-col items-center justify-center p-4">
       <Card className="w-full max-w-5xl shadow-2xl overflow-hidden">
         <Tabs defaultValue="grid-chaveiro" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
@@ -535,6 +535,9 @@ export default function Home() {
             </TabsContent>
         </Tabs>
       </Card>
+      <footer className="text-center text-muted-foreground text-sm mt-4">
+        © 2024 FotoChaveiro. Todos os direitos reservados.
+      </footer>
     </main>
   );
 }
