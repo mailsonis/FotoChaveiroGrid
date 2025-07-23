@@ -521,6 +521,9 @@ function GridChaveiro() {
 export default function Home() {
   return (
     <main className="min-h-screen w-full bg-background font-body text-foreground flex flex-col items-center justify-center p-4">
+      <h1 className="text-3xl font-bold text-center text-primary mb-8">
+        Gerar PDF com fotos 3x4 para impressão
+      </h1>
       <Card className="w-full max-w-5xl shadow-2xl overflow-hidden">
         <Tabs defaultValue="grid-chaveiro" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
