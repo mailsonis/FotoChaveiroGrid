@@ -522,10 +522,10 @@ export default function Home() {
   return (
     <main className="min-h-screen w-full bg-background font-body text-foreground flex items-center justify-center p-4">
       <Card className="w-full max-w-5xl shadow-2xl overflow-hidden">
-        <Tabs defaultValue="foto-chaveiro" className="w-full">
+        <Tabs defaultValue="grid-chaveiro" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="foto-chaveiro">Foto Única</TabsTrigger>
                 <TabsTrigger value="grid-chaveiro">Grid de Imagens</TabsTrigger>
+                <TabsTrigger value="foto-chaveiro">Foto Única</TabsTrigger>
             </TabsList>
             <TabsContent value="foto-chaveiro">
                 <FotoChaveiro />
