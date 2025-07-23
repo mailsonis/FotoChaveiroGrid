@@ -77,9 +77,9 @@ export default function Home() {
       });
 
       const { width: imgWidth, height: imgHeight } = SIZES_MM[keychainSize];
-      const margin = 10;
-      const colGap = 2;
-      const rowGap = 2;
+      const margin = 5; // Reduced margin
+      const colGap = 0; // Minimal gap
+      const rowGap = 0; // Minimal gap
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
 
@@ -87,12 +87,12 @@ export default function Home() {
       let y = margin;
 
       for (let i = 0; i < quantity; i++) {
-        if (x + imgWidth > pageWidth - margin + 0.1) { // Add tolerance
+        if (x + imgWidth > pageWidth - margin + 0.1) {
           x = margin;
           y += imgHeight + rowGap;
         }
 
-        if (y + imgHeight > pageHeight - margin + 0.1) { // Add tolerance
+        if (y + imgHeight > pageHeight - margin + 0.1) {
           doc.addPage();
           x = margin;
           y = margin;
