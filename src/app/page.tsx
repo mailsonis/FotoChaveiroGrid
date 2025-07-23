@@ -77,14 +77,68 @@ export default function Home() {
       });
 
       const { width: imgWidth, height: imgHeight } = SIZES_MM[keychainSize];
-      const margin = 5; // Reduced margin
-      const colGap = 0; // Minimal gap
-      const rowGap = 0; // Minimal gap
+      const margin = 5;
+      const colGap = 0;
+      const rowGap = 0;
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
 
       let x = margin;
       let y = margin;
+      
+      const drawCutLines = () => {
+        doc.setLineDashPattern([1, 1], 0);
+        doc.setDrawColor(150, 150, 150); // Gray color for lines
+        doc.setLineWidth(0.1);
+
+        let lastY = -1;
+        let currentX = margin;
+        let currentY = margin;
+        let imagesInRow = 0;
+        const cols = Math.floor((pageWidth - 2 * margin + colGap) / (imgWidth + colGap));
+
+        // Draw horizontal lines
+        for(let i=0; i<quantity; i++) {
+          if (currentX + imgWidth > pageWidth - margin + 0.1) {
+            currentX = margin;
+            currentY += imgHeight + rowGap;
+          }
+          if (currentY + imgHeight > pageHeight - margin + 0.1) {
+             // new page, but we don't handle lines across pages here for simplicity
+          }
+          if(lastY !== currentY && lastY !== -1) {
+             doc.line(margin, lastY + imgHeight, pageWidth - margin, lastY + imgHeight);
+          }
+          lastY = currentY;
+          currentX += imgWidth + colGap;
+        }
+        // Last row bottom line
+        if(lastY !== -1) {
+            doc.line(margin, lastY + imgHeight, margin + (cols * (imgWidth + colGap)) - colGap, lastY + imgHeight);
+        }
+
+
+        // Draw vertical lines
+        currentX = margin;
+        currentY = margin;
+        let lastX = -1;
+        
+        const rows = Math.ceil(quantity / cols);
+
+        for (let j = 0; j < cols; j++) {
+            let colX = margin + j * (imgWidth + colGap);
+            let colHeight = 0;
+            const imagesInCol = Math.min(rows, Math.ceil((quantity - j) / cols))
+
+            if( j > 0) {
+                 doc.line(colX, margin, colX, margin + (rows * (imgHeight + rowGap)) - rowGap );
+            }
+        }
+        
+         doc.line(margin + (cols * (imgWidth + colGap)) - colGap, margin, margin + (cols * (imgWidth + colGap)) - colGap, margin + (rows * (imgHeight + rowGap)) - rowGap );
+
+      }
+
 
       for (let i = 0; i < quantity; i++) {
         if (x + imgWidth > pageWidth - margin + 0.1) {
@@ -93,6 +147,7 @@ export default function Home() {
         }
 
         if (y + imgHeight > pageHeight - margin + 0.1) {
+          drawCutLines();
           doc.addPage();
           x = margin;
           y = margin;
@@ -101,6 +156,9 @@ export default function Home() {
         doc.addImage(croppedImage, 'JPEG', x, y, imgWidth, imgHeight);
         x += imgWidth + colGap;
       }
+      
+      drawCutLines();
+
 
       doc.save("foto-chaveiro.pdf");
     } catch (e) {
