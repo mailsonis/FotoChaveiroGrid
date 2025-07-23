@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import Cropper, { type Area } from 'react-easy-crop';
 import { jsPDF } from "jspdf";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import getCroppedImg from "@/lib/cropImage";
-import { Upload, Download, Scissors, Loader2, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { Upload, Download, Scissors, Loader2, Image as ImageIcon, Trash2, Crop } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,7 @@ function readFile(file: File): Promise<string> {
 type GridImage = {
   id: string;
   src: string;
+  originalSrc: string;
   quantity: number;
 };
 
@@ -243,6 +245,12 @@ function GridChaveiro() {
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
+  // State for cropping dialog
+  const [editingImage, setEditingImage] = useState<GridImage | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  
   const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       const files = Array.from(e.target.files);
@@ -252,6 +260,7 @@ function GridChaveiro() {
         newImages.push({
           id: `${file.name}-${Date.now()}`,
           src: imageDataUrl,
+          originalSrc: imageDataUrl,
           quantity: 1,
         });
       }
@@ -267,6 +276,36 @@ function GridChaveiro() {
     setImages(images.filter(img => img.id !== id));
   };
 
+  const openEditor = (image: GridImage) => {
+    setEditingImage(image);
+    setZoom(1);
+    setCrop({ x: 0, y: 0 });
+  };
+
+  const onCropComplete = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+
+  const handleCropSave = async () => {
+    if (!editingImage || !croppedAreaPixels) return;
+
+    try {
+      const croppedImage = await getCroppedImg(editingImage.originalSrc, croppedAreaPixels);
+      if (croppedImage) {
+        setImages(images.map(img => 
+          img.id === editingImage.id ? { ...img, src: croppedImage } : img
+        ));
+      }
+      setEditingImage(null);
+    } catch(e) {
+      console.error("Error cropping image", e);
+      toast({
+        variant: "destructive",
+        title: "Erro ao Cortar",
+        description: "Não foi possível cortar a imagem.",
+      });
+    }
+  };
 
   const generatePdf = async () => {
     if (images.length === 0) {
@@ -359,82 +398,122 @@ function GridChaveiro() {
     }
   };
 
+  const aspect = SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height;
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2">
-      <div className="p-6 md:p-8 flex flex-col justify-between">
-        <div>
-          <CardHeader className="p-0 mb-6">
-            <CardTitle className="font-headline text-3xl font-bold text-primary">Grid de Imagens para Chaveiro</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Crie uma grade com várias fotos para seus chaveiros.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0 space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="grid-file-upload" className="font-headline text-lg">1. Escolha suas Imagens</Label>
-              <Input id="grid-file-upload" type="file" onChange={onFileChange} accept="image/*" className="hidden" multiple />
-              <Label htmlFor="grid-file-upload" className={cn(buttonVariants({ variant: 'outline' }), "w-full cursor-pointer bg-transparent hover:bg-primary/5 border-primary/30 text-primary hover:text-primary")}>
-                <Upload className="mr-2 h-4 w-4" />
-                Adicionar Imagens
-              </Label>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="grid-keychain-size" className="font-headline text-lg">2. Tamanho</Label>
-              <Select value={keychainSize} onValueChange={setKeychainSize}>
-                <SelectTrigger id="grid-keychain-size">
-                  <SelectValue placeholder="Selecione o tamanho" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(SIZES_MM).map(([key, { name }]) => (
-                    <SelectItem key={key} value={key}>{name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2">
+        <div className="p-6 md:p-8 flex flex-col justify-between">
+          <div>
+            <CardHeader className="p-0 mb-6">
+              <CardTitle className="font-headline text-3xl font-bold text-primary">Grid de Imagens para Chaveiro</CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Crie uma grade com várias fotos para seus chaveiros. Permite ajustar cada imagem individualmente.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="grid-file-upload" className="font-headline text-lg">1. Escolha suas Imagens</Label>
+                <Input id="grid-file-upload" type="file" onChange={onFileChange} accept="image/*" className="hidden" multiple />
+                <Label htmlFor="grid-file-upload" className={cn(buttonVariants({ variant: 'outline' }), "w-full cursor-pointer bg-transparent hover:bg-primary/5 border-primary/30 text-primary hover:text-primary")}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Adicionar Imagens
+                </Label>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="grid-keychain-size" className="font-headline text-lg">2. Tamanho</Label>
+                <Select value={keychainSize} onValueChange={setKeychainSize}>
+                  <SelectTrigger id="grid-keychain-size">
+                    <SelectValue placeholder="Selecione o tamanho" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(SIZES_MM).map(([key, { name }]) => (
+                      <SelectItem key={key} value={key}>{name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </div>
+          <CardFooter className="p-0 mt-8 self-end">
+            <Button onClick={generatePdf} disabled={images.length === 0 || isGenerating} className="w-full text-lg py-6">
+              {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Download className="mr-2 h-5 w-5" />}
+              Gerar PDF do Grid
+            </Button>
+          </CardFooter>
         </div>
-        <CardFooter className="p-0 mt-8">
-          <Button onClick={generatePdf} disabled={images.length === 0 || isGenerating} className="w-full text-lg py-6">
-            {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Download className="mr-2 h-5 w-5" />}
-            Gerar PDF do Grid
-          </Button>
-        </CardFooter>
-      </div>
-      <div className="bg-muted/30 p-4 md:p-6 flex flex-col min-h-[300px] md:min-h-0">
-          <h3 className="font-headline text-xl font-semibold text-primary/80 mb-4">Imagens Selecionadas</h3>
-          {images.length > 0 ? (
-            <div className="flex-grow overflow-y-auto pr-2 space-y-4">
-              {images.map(image => (
-                <div key={image.id} className="flex items-center gap-4 bg-background p-2 rounded-lg shadow-sm">
-                  <img src={image.src} alt="thumbnail" className="w-16 h-16 object-cover rounded-md" />
-                  <div className="flex-grow">
-                     <p className="text-sm font-medium text-ellipsis overflow-hidden whitespace-nowrap w-32" title={image.id.split('-')[0]}>{image.id.split('-')[0]}</p>
-                     <div className="flex items-center gap-2 mt-1">
-                        <Label htmlFor={`quantity-${image.id}`} className="text-xs">Qtd:</Label>
-                        <Input 
-                            id={`quantity-${image.id}`} 
-                            type="number" 
-                            value={image.quantity} 
-                            onChange={(e) => updateQuantity(image.id, parseInt(e.target.value))}
-                            min="1"
-                            className="w-20 h-8"
-                        />
-                     </div>
+        <div className="bg-muted/30 p-4 md:p-6 flex flex-col min-h-[300px] md:min-h-0">
+            <h3 className="font-headline text-xl font-semibold text-primary/80 mb-4">Imagens Selecionadas</h3>
+            {images.length > 0 ? (
+              <div className="flex-grow overflow-y-auto pr-2 space-y-4">
+                {images.map(image => (
+                  <div key={image.id} className="flex items-center gap-4 bg-background p-2 rounded-lg shadow-sm">
+                    <img src={image.src} alt="thumbnail" className="w-16 h-16 object-cover rounded-md" />
+                    <div className="flex-grow">
+                       <p className="text-sm font-medium text-ellipsis overflow-hidden whitespace-nowrap w-32" title={image.id.split('-')[0]}>{image.id.split('-')[0]}</p>
+                       <div className="flex items-center gap-2 mt-1">
+                          <Label htmlFor={`quantity-${image.id}`} className="text-xs">Qtd:</Label>
+                          <Input 
+                              id={`quantity-${image.id}`} 
+                              type="number" 
+                              value={image.quantity} 
+                              onChange={(e) => updateQuantity(image.id, parseInt(e.target.value))}
+                              min="1"
+                              className="w-20 h-8"
+                          />
+                       </div>
+                    </div>
+                     <Button variant="ghost" size="icon" onClick={() => openEditor(image)} className="text-primary hover:bg-primary/10">
+                        <Crop className="h-4 w-4" />
+                     </Button>
+                     <Button variant="ghost" size="icon" onClick={() => removeImage(image.id)} className="text-destructive hover:bg-destructive/10">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
-                   <Button variant="ghost" size="icon" onClick={() => removeImage(image.id)} className="text-destructive hover:bg-destructive/10">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-center text-muted-foreground p-4 bg-background rounded-lg">
-                <ImageIcon className="h-16 w-16 mb-4 text-primary/20" />
-                <p>Nenhuma imagem selecionada.</p>
-            </div>
-          )}
+                ))}
+              </div>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-center text-muted-foreground p-4 bg-background rounded-lg">
+                  <ImageIcon className="h-16 w-16 mb-4 text-primary/20" />
+                  <p>Nenhuma imagem selecionada.</p>
+              </div>
+            )}
+        </div>
       </div>
-    </div>
+      {editingImage && (
+        <Dialog open={!!editingImage} onOpenChange={(isOpen) => !isOpen && setEditingImage(null)}>
+            <DialogContent className="max-w-4xl">
+                <DialogHeader>
+                    <DialogTitle>Ajustar Imagem</DialogTitle>
+                </DialogHeader>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden bg-background shadow-inner">
+                        <Cropper
+                            image={editingImage.originalSrc}
+                            crop={crop}
+                            zoom={zoom}
+                            aspect={aspect}
+                            onCropChange={setCrop}
+                            onZoomChange={setZoom}
+                            onCropComplete={onCropComplete}
+                            cropShape="rect"
+                        />
+                    </div>
+                    <div className="space-y-4">
+                        <div>
+                            <Label htmlFor="zoom-dialog">Zoom</Label>
+                            <Slider id="zoom-dialog" value={[zoom]} onValueChange={([val]) => setZoom(val)} min={1} max={3} step={0.1} />
+                        </div>
+                    </div>
+                </div>
+                <DialogFooter>
+                    <Button variant="outline" onClick={() => setEditingImage(null)}>Cancelar</Button>
+                    <Button onClick={handleCropSave}>Salvar Corte</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 }
 
@@ -445,7 +524,7 @@ export default function Home() {
       <Card className="w-full max-w-5xl shadow-2xl overflow-hidden">
         <Tabs defaultValue="foto-chaveiro" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="foto-chaveiro">Foto Chaveiro</TabsTrigger>
+                <TabsTrigger value="foto-chaveiro">Foto Única</TabsTrigger>
                 <TabsTrigger value="grid-chaveiro">Grid de Imagens</TabsTrigger>
             </TabsList>
             <TabsContent value="foto-chaveiro">
