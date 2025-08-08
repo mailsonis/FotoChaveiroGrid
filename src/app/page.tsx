@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useCallback, useRef, MouseEvent, TouchEvent } from "react";
@@ -756,10 +757,10 @@ function PolaroidTransformer() {
         <div className="bg-muted/30 p-4 md:p-6 flex flex-col items-center justify-center min-h-[300px] md:min-h-0">
           <div 
             ref={polaroidRef}
-            className="relative w-[300px] h-[360px] bg-white shadow-lg rounded-sm p-4 flex flex-col select-none"
+            className="relative w-[300px] h-[360px] bg-white shadow-lg rounded-sm p-4 flex flex-col items-center select-none"
             style={{fontFamily: "'Gloria Hallelujah', cursive"}}
           >
-            <div className="relative w-full h-[240px] bg-gray-200 overflow-hidden">
+            <div className="relative w-[268px] h-[268px] bg-gray-200 overflow-hidden">
               {imageSrc ? (
                 <Cropper
                   image={imageSrc}
@@ -776,7 +777,7 @@ function PolaroidTransformer() {
                   </div>
               )}
             </div>
-            <div className="w-full h-[60px] flex items-center justify-center pt-2 grow">
+            <div className="w-full flex-grow flex items-center justify-center pt-2">
               <p className="text-center text-lg text-gray-800">{text}</p>
             </div>
             {stickers.map((sticker) => <StickerComponent key={sticker.id} sticker={sticker} />)}
@@ -791,13 +792,13 @@ function PolaroidTransformer() {
       >
           <div 
               ref={finalImageRef}
-              className="relative w-[300px] h-[360px] bg-white p-4 flex flex-col"
+              className="relative w-[300px] h-[360px] bg-white p-4 flex flex-col items-center"
               style={{fontFamily: "'Gloria Hallelujah', cursive"}}
             >
-              <div className="w-full h-[240px] bg-gray-200">
+              <div className="w-[268px] h-[268px] bg-gray-200">
                   {croppedImageSrc && <img src={croppedImageSrc} className="w-full h-full object-cover" alt="cropped preview" />}
               </div>
-              <div className="w-full h-[60px] flex items-center justify-center pt-2 grow">
+              <div className="w-full flex-grow flex items-center justify-center pt-2">
                 <p className="text-center text-lg text-gray-800">{text}</p>
               </div>
               {stickers.map((sticker) => (
@@ -849,3 +850,5 @@ export default function Home() {
     </main>
   );
 }
+
+    
