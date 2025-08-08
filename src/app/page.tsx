@@ -12,11 +12,10 @@ import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import getCroppedImg from "@/lib/cropImage";
-import { Upload, Download, Scissors, Loader2, Image as ImageIcon, Trash2, Crop } from 'lucide-react';
+import { Upload, Download, Scissors, Loader2, Image as ImageIcon, Trash2, Crop, Camera, Type, Sticker, PaintBucket } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
-// Sizes in mm for PDF generation
 const SIZES_MM: Record<string, { width: number; height: number; name: string }> = {
   '3x4': { width: 30, height: 40, name: '3x4 cm' },
   '3.5x4.5': { width: 35, height: 45, name: '3,5x4,5 cm' },
@@ -116,7 +115,6 @@ function FotoChaveiro() {
       const cols = Math.floor((pageWidth - 2 * margin + colGap) / (imgWidth + colGap));
       let imagesOnPage = 0;
 
-
       for (let i = 0; i < quantity; i++) {
         if (x + imgWidth > pageWidth - margin + 0.1) {
           x = margin;
@@ -161,7 +159,7 @@ function FotoChaveiro() {
           <div className="p-6 md:p-8 flex flex-col justify-between">
             <div>
               <CardHeader className="p-0 mb-6">
-                <CardTitle className="font-headline text-3xl font-bold text-primary">FotoChaveiro</CardTitle>
+                <CardTitle className="font-headline text-3xl font-bold text-primary">Foto Única</CardTitle>
                 <CardDescription className="text-muted-foreground">
                   Transforme suas fotos em chaveiros prontos para impressão.
                 </CardDescription>
@@ -245,7 +243,6 @@ function GridChaveiro() {
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
 
-  // State for cropping dialog
   const [editingImage, setEditingImage] = useState<GridImage | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
@@ -517,6 +514,152 @@ function GridChaveiro() {
   );
 }
 
+function PolaroidTransformer() {
+  const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
+  const [text, setText] = useState("");
+  const { toast } = useToast();
+  const finalImageRef = useRef<HTMLDivElement>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const imageDataUrl = await readFile(file);
+      setImageSrc(imageDataUrl);
+      setZoom(1);
+      setCrop({ x: 0, y: 0 });
+    }
+  };
+
+  const onCropComplete = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
+  
+  const downloadPolaroid = async () => {
+    if (!imageSrc || !croppedAreaPixels) {
+      toast({
+        title: "Imagem Faltando",
+        description: "Por favor, carregue e ajuste uma imagem primeiro.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsGenerating(true);
+    try {
+        const { default: html2canvas } = await import('html2canvas');
+        const element = finalImageRef.current;
+        if (!element) return;
+
+        const canvas = await html2canvas(element, { 
+            useCORS: true, 
+            allowTaint: true,
+            backgroundColor: null, // Use transparent background
+        });
+
+        const data = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.href = data;
+        link.download = 'polaroid.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch(e) {
+      console.error(e);
+       toast({
+        title: "Erro ao Gerar Imagem",
+        description: "Ocorreu um erro ao tentar gerar a imagem. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+        setIsGenerating(false);
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2">
+      <div className="p-6 md:p-8 flex flex-col justify-between">
+        <div>
+          <CardHeader className="p-0 mb-6">
+            <CardTitle className="font-headline text-3xl font-bold text-primary">Transformador de Fotos em Polaroid</CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Recrie a estética de uma foto Polaroid com filtros e textos.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0 space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="polaroid-upload" className="font-headline text-lg">1. Carregar Foto</Label>
+              <Input id="polaroid-upload" type="file" onChange={onFileChange} accept="image/*" className="hidden" />
+              <Label htmlFor="polaroid-upload" className={cn(buttonVariants({ variant: 'outline' }), "w-full cursor-pointer bg-transparent hover:bg-primary/5 border-primary/30 text-primary hover:text-primary")}>
+                <Upload className="mr-2 h-4 w-4" />
+                {imageSrc ? "Trocar Imagem" : "Selecionar Imagem"}
+              </Label>
+            </div>
+            
+            {imageSrc && (
+                <>
+                    <div className="space-y-2">
+                        <Label htmlFor="polaroid-zoom" className="font-headline text-lg">2. Ajuste o Zoom</Label>
+                        <Slider id="polaroid-zoom" value={[zoom]} onValueChange={([val]) => setZoom(val)} min={1} max={3} step={0.1} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="polaroid-text" className="font-headline text-lg">3. Adicionar Texto</Label>
+                        <Input id="polaroid-text" type="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="Escreva algo..." />
+                    </div>
+                </>
+            )}
+             <div className="space-y-2">
+                <Label className="font-headline text-lg">4. Ferramentas (em breve)</Label>
+                <div className="flex gap-2">
+                    <Button variant="outline" disabled><PaintBucket className="mr-2 h-4 w-4"/> Filtros</Button>
+                    <Button variant="outline" disabled><Sticker className="mr-2 h-4 w-4"/> Adesivos</Button>
+                </div>
+            </div>
+          </CardContent>
+        </div>
+        <CardFooter className="p-0 mt-8">
+            <Button onClick={downloadPolaroid} disabled={!imageSrc || isGenerating} className="w-full text-lg py-6">
+                 {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Download className="mr-2 h-5 w-5" />}
+                Baixar Polaroid
+            </Button>
+        </CardFooter>
+      </div>
+
+      <div className="bg-muted/30 p-4 md:p-6 flex flex-col items-center justify-center min-h-[300px] md:min-h-0">
+        <div 
+          ref={finalImageRef} 
+          className="w-[300px] h-[360px] bg-white shadow-lg rounded-sm p-4 flex flex-col"
+          style={{fontFamily: "'Gloria Hallelujah', cursive"}}
+        >
+          <div className="relative w-full h-[240px] bg-gray-200 overflow-hidden">
+            {imageSrc ? (
+              <Cropper
+                image={imageSrc}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={onCropComplete}
+              />
+            ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-center text-muted-foreground p-4">
+                  <Camera className="h-16 w-16 mb-4 text-primary/20" />
+                </div>
+            )}
+          </div>
+          <div className="w-full h-[60px] flex items-center justify-center pt-2">
+            <p className="text-center text-lg text-gray-800">{text}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 
 export default function Home() {
   return (
@@ -526,15 +669,19 @@ export default function Home() {
       </h1>
       <Card className="w-full max-w-5xl shadow-2xl overflow-hidden">
         <Tabs defaultValue="grid-chaveiro" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="grid-chaveiro">Grid de Imagens</TabsTrigger>
                 <TabsTrigger value="foto-chaveiro">Foto Única</TabsTrigger>
+                <TabsTrigger value="polaroid">Polaroid</TabsTrigger>
             </TabsList>
             <TabsContent value="foto-chaveiro">
                 <FotoChaveiro />
             </TabsContent>
             <TabsContent value="grid-chaveiro">
                 <GridChaveiro />
+            </TabsContent>
+            <TabsContent value="polaroid">
+              <PolaroidTransformer />
             </TabsContent>
         </Tabs>
       </Card>
