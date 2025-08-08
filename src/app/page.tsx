@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, MouseEvent, TouchEvent } from "react";
 import Cropper, { type Area } from 'react-easy-crop';
 import { jsPDF } from "jspdf";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -11,8 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import getCroppedImg from "@/lib/cropImage";
-import { Upload, Download, Scissors, Loader2, Image as ImageIcon, Trash2, Crop, Camera, Type, Sticker, PaintBucket } from 'lucide-react';
+import { Upload, Download, Scissors, Loader2, Image as ImageIcon, Trash2, Crop, Camera, Type, Sticker, PaintBucket, Smile, Heart, Star } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -514,6 +515,23 @@ function GridChaveiro() {
   );
 }
 
+const STICKERS = {
+  Emojis: ['😀', '😍', '😂', '😎', '🥳', '🤯', '👍', '💖', '🎉', '💯'],
+  Symbols: ['❤️', '⭐', '⚡', '✨', '✔️', '❌', '➡️', '⬅️', '❓', '❗'],
+  Retro: ['📼', '💾', '🕹️', '📞', '📺', '📻', '🕶️', '🚀', '👾', '✌️'],
+};
+
+type Sticker = {
+  id: number;
+  content: string;
+  position: { x: number; y: number };
+};
+
+type DraggingState = {
+  stickerId: number;
+  offset: { x: number; y: number };
+}
+
 function PolaroidTransformer() {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [croppedImageSrc, setCroppedImageSrc] = useState<string | null>(null);
@@ -524,6 +542,10 @@ function PolaroidTransformer() {
   const { toast } = useToast();
   const finalImageRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [stickers, setStickers] = useState<Sticker[]>([]);
+  const [dragging, setDragging] = useState<DraggingState | null>(null);
+  const polaroidRef = useRef<HTMLDivElement>(null);
+
 
   const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -533,6 +555,7 @@ function PolaroidTransformer() {
       setCroppedImageSrc(null); // Reset cropped image on new file
       setZoom(1);
       setCrop({ x: 0, y: 0 });
+      setStickers([]);
     }
   };
 
@@ -563,20 +586,12 @@ function PolaroidTransformer() {
         const { default: html2canvas } = await import('html2canvas');
         const element = finalImageRef.current;
         if (!element) return;
-
-        // Ensure the element is visible for capture, then hide it again.
-        element.style.position = 'fixed';
-        element.style.left = '-9999px';
-        element.style.top = '0px';
-
+        
         const canvas = await html2canvas(element, { 
             useCORS: true, 
             allowTaint: true,
             backgroundColor: null,
         });
-
-        element.style.position = 'absolute';
-        element.style.left = '-9999px';
 
         const data = canvas.toDataURL('image/png');
         const link = document.createElement('a');
@@ -596,10 +611,78 @@ function PolaroidTransformer() {
         setIsGenerating(false);
     }
   };
+  
+  const addSticker = (content: string) => {
+    setStickers([
+      ...stickers,
+      { id: Date.now(), content, position: { x: 50, y: 50 } },
+    ]);
+  };
+
+  const removeSticker = (id: number) => {
+    setStickers(stickers.filter((s) => s.id !== id));
+  };
+
+  const handleDragStart = (e: MouseEvent<HTMLDivElement> | TouchEvent<HTMLDivElement>, stickerId: number) => {
+    e.preventDefault();
+    const target = e.currentTarget as HTMLDivElement;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const offset = {
+      x: clientX - target.offsetLeft,
+      y: clientY - target.offsetTop,
+    };
+    setDragging({ stickerId, offset });
+  };
+  
+  const handleDrag = (e: MouseEvent<HTMLDivElement> | TouchEvent<HTMLDivElement>) => {
+    if (!dragging || !polaroidRef.current) return;
+    e.preventDefault();
+    
+    const containerRect = polaroidRef.current.getBoundingClientRect();
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+    let x = clientX - containerRect.left - dragging.offset.x;
+    let y = clientY - containerRect.top - dragging.offset.y;
+
+    // Clamp position within the polaroid div
+    const stickerSize = 24; // approx size of sticker
+    x = Math.max(0, Math.min(x, containerRect.width - stickerSize));
+    y = Math.max(0, Math.min(y, containerRect.height - stickerSize));
+
+    setStickers(
+      stickers.map((s) =>
+        s.id === dragging.stickerId ? { ...s, position: { x, y } } : s
+      )
+    );
+  };
+
+  const handleDragEnd = () => {
+    setDragging(null);
+  };
+
+  const StickerComponent = ({ sticker }: { sticker: Sticker }) => (
+    <div
+        key={sticker.id}
+        className="absolute text-2xl cursor-grab active:cursor-grabbing"
+        style={{
+          left: `${sticker.position.x}px`,
+          top: `${sticker.position.y}px`,
+          touchAction: 'none',
+        }}
+        onMouseDown={(e) => handleDragStart(e, sticker.id)}
+        onTouchStart={(e) => handleDragStart(e, sticker.id)}
+        onDoubleClick={() => removeSticker(sticker.id)}
+        title="Arraste para mover, clique duplo para remover"
+      >
+        {sticker.content}
+    </div>
+  )
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2">
+      <div className="grid grid-cols-1 md:grid-cols-2" onMouseMove={handleDrag} onMouseUp={handleDragEnd} onTouchMove={handleDrag} onTouchEnd={handleDragEnd} onMouseLeave={handleDragEnd}>
         <div className="p-6 md:p-8 flex flex-col justify-between">
           <div>
             <CardHeader className="p-0 mb-6">
@@ -631,10 +714,33 @@ function PolaroidTransformer() {
                   </>
               )}
                <div className="space-y-2">
-                  <Label className="font-headline text-lg">4. Ferramentas (em breve)</Label>
+                  <Label className="font-headline text-lg">4. Ferramentas</Label>
                   <div className="flex gap-2">
                       <Button variant="outline" disabled><PaintBucket className="mr-2 h-4 w-4"/> Filtros</Button>
-                      <Button variant="outline" disabled><Sticker className="mr-2 h-4 w-4"/> Adesivos</Button>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                           <Button variant="outline" disabled={!imageSrc}>
+                              <Sticker className="mr-2 h-4 w-4"/> Adesivos
+                           </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-80">
+                            <div className="grid gap-4">
+                                <h4 className="font-medium leading-none">Adesivos</h4>
+                                {Object.entries(STICKERS).map(([category, list]) => (
+                                    <div key={category}>
+                                        <p className="text-sm text-muted-foreground mb-2">{category}</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {list.map((sticker) => (
+                                                <Button key={sticker} variant="ghost" size="icon" className="text-2xl" onClick={() => addSticker(sticker)}>
+                                                    {sticker}
+                                                </Button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </PopoverContent>
+                      </Popover>
                   </div>
               </div>
             </CardContent>
@@ -649,7 +755,8 @@ function PolaroidTransformer() {
 
         <div className="bg-muted/30 p-4 md:p-6 flex flex-col items-center justify-center min-h-[300px] md:min-h-0">
           <div 
-            className="w-[300px] h-[360px] bg-white shadow-lg rounded-sm p-4 flex flex-col"
+            ref={polaroidRef}
+            className="relative w-[300px] h-[360px] bg-white shadow-lg rounded-sm p-4 flex flex-col select-none"
             style={{fontFamily: "'Gloria Hallelujah', cursive"}}
           >
             <div className="relative w-full h-[240px] bg-gray-200 overflow-hidden">
@@ -669,28 +776,42 @@ function PolaroidTransformer() {
                   </div>
               )}
             </div>
-            <div className="w-full h-[60px] flex items-center justify-center pt-2">
+            <div className="w-full h-[60px] flex items-center justify-center pt-2 grow">
               <p className="text-center text-lg text-gray-800">{text}</p>
             </div>
+            {stickers.map((sticker) => <StickerComponent key={sticker.id} sticker={sticker} />)}
           </div>
         </div>
       </div>
+
       {/* Hidden element for canvas capture */}
       <div
-          ref={finalImageRef}
           className="absolute -z-10"
           style={{left: '-9999px', top: '0px' }}
       >
           <div 
-              className="w-[300px] h-[360px] bg-white p-4 flex flex-col"
+              ref={finalImageRef}
+              className="relative w-[300px] h-[360px] bg-white p-4 flex flex-col"
               style={{fontFamily: "'Gloria Hallelujah', cursive"}}
             >
               <div className="w-full h-[240px] bg-gray-200">
                   {croppedImageSrc && <img src={croppedImageSrc} className="w-full h-full object-cover" alt="cropped preview" />}
               </div>
-              <div className="w-full h-[60px] flex items-center justify-center pt-2">
+              <div className="w-full h-[60px] flex items-center justify-center pt-2 grow">
                 <p className="text-center text-lg text-gray-800">{text}</p>
               </div>
+              {stickers.map((sticker) => (
+                  <div
+                    key={sticker.id}
+                    className="absolute text-2xl"
+                    style={{
+                      left: `${sticker.position.x + 16}px`, // +16 for padding
+                      top: `${sticker.position.y + 16}px`,
+                    }}
+                  >
+                    {sticker.content}
+                  </div>
+              ))}
           </div>
       </div>
     </>
