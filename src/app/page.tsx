@@ -516,6 +516,7 @@ function GridChaveiro() {
 
 function PolaroidTransformer() {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
+  const [croppedImageSrc, setCroppedImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
@@ -529,14 +530,23 @@ function PolaroidTransformer() {
       const file = e.target.files[0];
       const imageDataUrl = await readFile(file);
       setImageSrc(imageDataUrl);
+      setCroppedImageSrc(null); // Reset cropped image on new file
       setZoom(1);
       setCrop({ x: 0, y: 0 });
     }
   };
 
-  const onCropComplete = useCallback((_croppedArea: Area, croppedAreaPixels: Area) => {
+  const onCropComplete = useCallback(async (_croppedArea: Area, croppedAreaPixels: Area) => {
     setCroppedAreaPixels(croppedAreaPixels);
-  }, []);
+    if(imageSrc) {
+        try {
+            const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
+            setCroppedImageSrc(croppedImage);
+        } catch (e) {
+            console.error(e);
+        }
+    }
+  }, [imageSrc]);
   
   const downloadPolaroid = async () => {
     if (!imageSrc || !croppedAreaPixels) {
@@ -554,11 +564,19 @@ function PolaroidTransformer() {
         const element = finalImageRef.current;
         if (!element) return;
 
+        // Ensure the element is visible for capture, then hide it again.
+        element.style.position = 'fixed';
+        element.style.left = '-9999px';
+        element.style.top = '0px';
+
         const canvas = await html2canvas(element, { 
             useCORS: true, 
             allowTaint: true,
-            backgroundColor: null, // Use transparent background
+            backgroundColor: null,
         });
+
+        element.style.position = 'absolute';
+        element.style.left = '-9999px';
 
         const data = canvas.toDataURL('image/png');
         const link = document.createElement('a');
@@ -580,83 +598,102 @@ function PolaroidTransformer() {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2">
-      <div className="p-6 md:p-8 flex flex-col justify-between">
-        <div>
-          <CardHeader className="p-0 mb-6">
-            <CardTitle className="font-headline text-3xl font-bold text-primary">Transformador de Fotos em Polaroid</CardTitle>
-            <CardDescription className="text-muted-foreground">
-              Recrie a estética de uma foto Polaroid com filtros e textos.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-0 space-y-6">
-            <div className="space-y-2">
-              <Label htmlFor="polaroid-upload" className="font-headline text-lg">1. Carregar Foto</Label>
-              <Input id="polaroid-upload" type="file" onChange={onFileChange} accept="image/*" className="hidden" />
-              <Label htmlFor="polaroid-upload" className={cn(buttonVariants({ variant: 'outline' }), "w-full cursor-pointer bg-transparent hover:bg-primary/5 border-primary/30 text-primary hover:text-primary")}>
-                <Upload className="mr-2 h-4 w-4" />
-                {imageSrc ? "Trocar Imagem" : "Selecionar Imagem"}
-              </Label>
-            </div>
-            
-            {imageSrc && (
-                <>
-                    <div className="space-y-2">
-                        <Label htmlFor="polaroid-zoom" className="font-headline text-lg">2. Ajuste o Zoom</Label>
-                        <Slider id="polaroid-zoom" value={[zoom]} onValueChange={([val]) => setZoom(val)} min={1} max={3} step={0.1} />
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="polaroid-text" className="font-headline text-lg">3. Adicionar Texto</Label>
-                        <Input id="polaroid-text" type="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="Escreva algo..." />
-                    </div>
-                </>
-            )}
-             <div className="space-y-2">
-                <Label className="font-headline text-lg">4. Ferramentas (em breve)</Label>
-                <div className="flex gap-2">
-                    <Button variant="outline" disabled><PaintBucket className="mr-2 h-4 w-4"/> Filtros</Button>
-                    <Button variant="outline" disabled><Sticker className="mr-2 h-4 w-4"/> Adesivos</Button>
-                </div>
-            </div>
-          </CardContent>
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2">
+        <div className="p-6 md:p-8 flex flex-col justify-between">
+          <div>
+            <CardHeader className="p-0 mb-6">
+              <CardTitle className="font-headline text-3xl font-bold text-primary">Transformador de Fotos em Polaroid</CardTitle>
+              <CardDescription className="text-muted-foreground">
+                Recrie a estética de uma foto Polaroid com filtros e textos.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-0 space-y-6">
+              <div className="space-y-2">
+                <Label htmlFor="polaroid-upload" className="font-headline text-lg">1. Carregar Foto</Label>
+                <Input id="polaroid-upload" type="file" onChange={onFileChange} accept="image/*" className="hidden" />
+                <Label htmlFor="polaroid-upload" className={cn(buttonVariants({ variant: 'outline' }), "w-full cursor-pointer bg-transparent hover:bg-primary/5 border-primary/30 text-primary hover:text-primary")}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  {imageSrc ? "Trocar Imagem" : "Selecionar Imagem"}
+                </Label>
+              </div>
+              
+              {imageSrc && (
+                  <>
+                      <div className="space-y-2">
+                          <Label htmlFor="polaroid-zoom" className="font-headline text-lg">2. Ajuste o Zoom</Label>
+                          <Slider id="polaroid-zoom" value={[zoom]} onValueChange={([val]) => setZoom(val)} min={1} max={3} step={0.1} />
+                      </div>
+                       <div className="space-y-2">
+                          <Label htmlFor="polaroid-text" className="font-headline text-lg">3. Adicionar Texto</Label>
+                          <Input id="polaroid-text" type="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="Escreva algo..." />
+                      </div>
+                  </>
+              )}
+               <div className="space-y-2">
+                  <Label className="font-headline text-lg">4. Ferramentas (em breve)</Label>
+                  <div className="flex gap-2">
+                      <Button variant="outline" disabled><PaintBucket className="mr-2 h-4 w-4"/> Filtros</Button>
+                      <Button variant="outline" disabled><Sticker className="mr-2 h-4 w-4"/> Adesivos</Button>
+                  </div>
+              </div>
+            </CardContent>
+          </div>
+          <CardFooter className="p-0 mt-8">
+              <Button onClick={downloadPolaroid} disabled={!imageSrc || isGenerating} className="w-full text-lg py-6">
+                   {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Download className="mr-2 h-5 w-5" />}
+                  Baixar Polaroid
+              </Button>
+          </CardFooter>
         </div>
-        <CardFooter className="p-0 mt-8">
-            <Button onClick={downloadPolaroid} disabled={!imageSrc || isGenerating} className="w-full text-lg py-6">
-                 {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Download className="mr-2 h-5 w-5" />}
-                Baixar Polaroid
-            </Button>
-        </CardFooter>
-      </div>
 
-      <div className="bg-muted/30 p-4 md:p-6 flex flex-col items-center justify-center min-h-[300px] md:min-h-0">
-        <div 
-          ref={finalImageRef} 
-          className="w-[300px] h-[360px] bg-white shadow-lg rounded-sm p-4 flex flex-col"
-          style={{fontFamily: "'Gloria Hallelujah', cursive"}}
-        >
-          <div className="relative w-full h-[240px] bg-gray-200 overflow-hidden">
-            {imageSrc ? (
-              <Cropper
-                image={imageSrc}
-                crop={crop}
-                zoom={zoom}
-                aspect={1}
-                onCropChange={setCrop}
-                onZoomChange={setZoom}
-                onCropComplete={onCropComplete}
-              />
-            ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-center text-muted-foreground p-4">
-                  <Camera className="h-16 w-16 mb-4 text-primary/20" />
-                </div>
-            )}
-          </div>
-          <div className="w-full h-[60px] flex items-center justify-center pt-2">
-            <p className="text-center text-lg text-gray-800">{text}</p>
+        <div className="bg-muted/30 p-4 md:p-6 flex flex-col items-center justify-center min-h-[300px] md:min-h-0">
+          <div 
+            className="w-[300px] h-[360px] bg-white shadow-lg rounded-sm p-4 flex flex-col"
+            style={{fontFamily: "'Gloria Hallelujah', cursive"}}
+          >
+            <div className="relative w-full h-[240px] bg-gray-200 overflow-hidden">
+              {imageSrc ? (
+                <Cropper
+                  image={imageSrc}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={1}
+                  onCropChange={setCrop}
+                  onZoomChange={setZoom}
+                  onCropComplete={onCropComplete}
+                />
+              ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-center text-muted-foreground p-4">
+                    <Camera className="h-16 w-16 mb-4 text-primary/20" />
+                  </div>
+              )}
+            </div>
+            <div className="w-full h-[60px] flex items-center justify-center pt-2">
+              <p className="text-center text-lg text-gray-800">{text}</p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+      {/* Hidden element for canvas capture */}
+      <div
+          ref={finalImageRef}
+          className="absolute -z-10"
+          style={{left: '-9999px', top: '0px' }}
+      >
+          <div 
+              className="w-[300px] h-[360px] bg-white p-4 flex flex-col"
+              style={{fontFamily: "'Gloria Hallelujah', cursive"}}
+            >
+              <div className="w-full h-[240px] bg-gray-200">
+                  {croppedImageSrc && <img src={croppedImageSrc} className="w-full h-full object-cover" alt="cropped preview" />}
+              </div>
+              <div className="w-full h-[60px] flex items-center justify-center pt-2">
+                <p className="text-center text-lg text-gray-800">{text}</p>
+              </div>
+          </div>
+      </div>
+    </>
   );
 }
 
