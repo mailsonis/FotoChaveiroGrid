@@ -830,7 +830,7 @@ export default function Home() {
         </Tabs>
       </Card>
       <footer className="text-center text-muted-foreground text-sm mt-4">
-        © 2024 FotoChaveiro. Todos os direitos reservados.
+        © {new Date().getFullYear()} Idealizado por Mailson RG. Desenvolvido com IA.
       </footer>
     </main>
   );
