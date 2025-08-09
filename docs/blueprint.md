@@ -1,4 +1,4 @@
-# **App Name**: FotoChaveiro
+# **App Name**: Foto3x4/Polaroid
 
 ## Core Features:
 

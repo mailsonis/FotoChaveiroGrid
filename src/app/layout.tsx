@@ -4,7 +4,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'FotoChaveiro',
+  title: 'Foto3x4/Polaroid',
   description: 'Transforme suas fotos em chaveiros para impressão',
 };
 
