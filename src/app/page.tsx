@@ -594,7 +594,7 @@ function PolaroidTransformer() {
         imageDataUri: originalCroppedImageSrc,
         filterPrompt: filterPrompt,
       });
-      if(filteredImage) {
+      if(filteredImage?.imageDataUri) {
         setDisplayImageSrc(filteredImage.imageDataUri);
       } else {
         throw new Error('A imagem filtrada não foi retornada.');
@@ -816,16 +816,16 @@ export default function Home() {
         Gerar PDF com fotos 3x4 ou foto polaroid para impressão
       </h1>
       <Card className="w-full max-w-5xl shadow-2xl overflow-hidden">
-        <Tabs defaultValue="grid-chaveiro" className="w-full">
+        <Tabs defaultValue="polaroid" className="w-full">
             <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="polaroid">Polaroid</TabsTrigger>
                 <TabsTrigger value="grid-chaveiro">Grid de Imagens</TabsTrigger>
                 <TabsTrigger value="foto-chaveiro">Foto Única</TabsTrigger>
-                <TabsTrigger value="polaroid">Polaroid</TabsTrigger>
             </TabsList>
             <TabsContent value="foto-chaveiro">
                 <FotoChaveiro />
             </TabsContent>
-            <TabsContent value="grid-chaveiro">
+            <TabsContent value="grid-chaveaveiro">
                 <GridChaveiro />
             </TabsContent>
             <TabsContent value="polaroid">
@@ -839,5 +839,3 @@ export default function Home() {
     </main>
   );
 }
-
-    
