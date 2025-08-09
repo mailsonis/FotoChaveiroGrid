@@ -594,12 +594,16 @@ function PolaroidTransformer() {
         imageDataUri: originalCroppedImageSrc,
         filterPrompt: filterPrompt,
       });
-      setDisplayImageSrc(filteredImage.imageDataUri);
+      if(filteredImage) {
+        setDisplayImageSrc(filteredImage.imageDataUri);
+      } else {
+        throw new Error('A imagem filtrada não foi retornada.');
+      }
     } catch (e) {
       console.error(e);
       toast({
         title: "Erro ao Aplicar Filtro",
-        description: "Não foi possível aplicar o filtro. Tente novamente.",
+        description: "Não foi possível aplicar o filtro. O serviço pode estar temporariamente indisponível. Tente novamente mais tarde.",
         variant: "destructive",
       });
     } finally {
@@ -835,3 +839,5 @@ export default function Home() {
     </main>
   );
 }
+
+    
