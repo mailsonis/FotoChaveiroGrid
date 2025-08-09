@@ -825,7 +825,7 @@ export default function Home() {
             <TabsContent value="foto-chaveiro">
                 <FotoChaveiro />
             </TabsContent>
-            <TabsContent value="grid-chaveaveiro">
+            <TabsContent value="grid-chaveiro">
                 <GridChaveiro />
             </TabsContent>
             <TabsContent value="polaroid">
