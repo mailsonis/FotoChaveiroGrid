@@ -4,8 +4,8 @@ import { Toaster } from "@/components/ui/toaster"
 import { cn } from '@/lib/utils';
 
 export const metadata: Metadata = {
-  title: 'Foto3x4/Polaroid',
-  description: 'Transforme suas fotos em chaveiros para impressão',
+  title: 'Polaroid/Foto3x4',
+  description: 'Transforme suas fotos em polaroid e grid de imagens 3x4 para impressão',
 };
 
 export default function RootLayout({

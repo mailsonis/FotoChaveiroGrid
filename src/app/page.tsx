@@ -164,7 +164,7 @@ function FotoChaveiro() {
               <CardHeader className="p-0 mb-6">
                 <CardTitle className="font-headline text-3xl font-bold text-primary">Foto Única</CardTitle>
                 <CardDescription className="text-muted-foreground">
-                  Transforme suas fotos em chaveiros prontos para impressão.
+                Grid de imagens 3x4 para impressão.
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0 space-y-6">
@@ -406,9 +406,9 @@ function GridChaveiro() {
         <div className="p-6 md:p-8 flex flex-col justify-between">
           <div>
             <CardHeader className="p-0 mb-6">
-              <CardTitle className="font-headline text-3xl font-bold text-primary">Grid de Imagens para Chaveiro</CardTitle>
+              <CardTitle className="font-headline text-3xl font-bold text-primary">Grid de Imagens Variadas</CardTitle>
               <CardDescription className="text-muted-foreground">
-                Permitir ajustar cada imagem individual conforme desejado.
+                Permite ajustar cada imagem individual conforme desejado.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 space-y-6">
@@ -813,7 +813,7 @@ export default function Home() {
   return (
     <main className="min-h-screen w-full bg-background font-body text-foreground flex flex-col items-center justify-center p-4">
       <h1 className="text-3xl font-bold text-center text-primary mb-8">
-        Gerar PDF com fotos 3x4 ou foto polaroid para impressão
+        Transforme suas fotos em polaroid ou gere PDF com fotos 3x4 para impressão
       </h1>
       <Card className="w-full max-w-5xl shadow-2xl overflow-hidden">
         <Tabs defaultValue="polaroid" className="w-full">
