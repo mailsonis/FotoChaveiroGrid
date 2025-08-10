@@ -18,6 +18,7 @@ import { Upload, Download, Scissors, Loader2, Image as ImageIcon, Trash2, Crop, 
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { applyFilter } from "@/ai/flows/apply-filter-flow";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const SIZES_MM: Record<string, { width: number; height: number; name: string }> = {
   '3x4': { width: 30, height: 40, name: '3x4 cm' },
@@ -718,25 +719,27 @@ function PolaroidTransformer() {
                               <Copy className="mr-2 h-4 w-4"/> Símbolos
                            </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-80">
-                            <div className="grid gap-4">
-                                <h4 className="font-medium leading-none">Copiar Símbolo</h4>
-                                <p className="text-sm text-muted-foreground">
-                                  Clique em um símbolo para copiá-lo e cole no campo de texto.
-                                </p>
-                                {Object.entries(SYMBOLS).map(([category, list]) => (
-                                    <div key={category}>
-                                        <p className="text-sm text-muted-foreground mb-2">{category}</p>
-                                        <div className="flex flex-wrap gap-1">
-                                            {list.map((symbol) => (
-                                                <Button key={symbol} variant="ghost" size="icon" className="text-lg" onClick={() => handleCopySymbol(symbol)}>
-                                                    {symbol}
-                                                </Button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                        <PopoverContent className="w-80 md:w-80 max-h-96 overflow-y-auto">
+                            <ScrollArea className="h-72 w-full">
+                              <div className="grid gap-4 p-4">
+                                  <h4 className="font-medium leading-none">Copiar Símbolo</h4>
+                                  <p className="text-sm text-muted-foreground">
+                                    Clique em um símbolo para copiá-lo e cole no campo de texto.
+                                  </p>
+                                  {Object.entries(SYMBOLS).map(([category, list]) => (
+                                      <div key={category}>
+                                          <p className="text-sm text-muted-foreground mb-2">{category}</p>
+                                          <div className="flex flex-wrap gap-1">
+                                              {list.map((symbol) => (
+                                                  <Button key={symbol} variant="ghost" size="icon" className="text-lg" onClick={() => handleCopySymbol(symbol)}>
+                                                      {symbol}
+                                                  </Button>
+                                              ))}
+                                          </div>
+                                      </div>
+                                  ))}
+                              </div>
+                            </ScrollArea>
                         </PopoverContent>
                       </Popover>
                   </div>
@@ -757,7 +760,7 @@ function PolaroidTransformer() {
             className="relative w-[300px] h-[360px] bg-white shadow-lg rounded-sm p-4 flex flex-col items-center select-none"
             style={{fontFamily: "'Gloria Hallelujah', cursive"}}
           >
-            <div className="relative w-[268px] h-[268px] bg-gray-200 overflow-hidden">
+            <div className="relative w-[268px] h-[268px] bg-gray-200 overflow-hidden aspect-square">
              {isApplyingFilter && (
                 <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
                     <Loader2 className="h-8 w-8 animate-spin text-white"/>
@@ -822,14 +825,14 @@ export default function Home() {
                 <TabsTrigger value="grid-chaveiro">Grid de Imagens</TabsTrigger>
                 <TabsTrigger value="foto-chaveiro">Foto Única</TabsTrigger>
             </TabsList>
-            <TabsContent value="foto-chaveiro">
-                <FotoChaveiro />
+            <TabsContent value="polaroid">
+              <PolaroidTransformer />
             </TabsContent>
             <TabsContent value="grid-chaveiro">
                 <GridChaveiro />
             </TabsContent>
-            <TabsContent value="polaroid">
-              <PolaroidTransformer />
+            <TabsContent value="foto-chaveiro">
+                <FotoChaveiro />
             </TabsContent>
         </Tabs>
       </Card>
