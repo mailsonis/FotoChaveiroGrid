@@ -22,7 +22,7 @@ const ApplyFilterInputSchema = z.object({
 export type ApplyFilterInput = z.infer<typeof ApplyFilterInputSchema>;
 
 const ApplyFilterOutputSchema = z.object({
-  imageDataUri: z.string().describe('The data URI of the filtered image.'),
+  imageDataUri: z.string().describe('The data URI of the filtered image.').nullable(),
 });
 export type ApplyFilterOutput = z.infer<typeof ApplyFilterOutputSchema>;
 
@@ -37,21 +37,28 @@ const applyFilterFlow = ai.defineFlow(
     outputSchema: ApplyFilterOutputSchema,
   },
   async ({ imageDataUri, filterPrompt }) => {
-    const { media } = await ai.generate({
-      model: 'googleai/gemini-2.0-flash-preview-image-generation',
-      prompt: [
-        { media: { url: imageDataUri } },
-        { text: `Apply a ${filterPrompt} filter to this image.` },
-      ],
-      config: {
-        responseModalities: ['TEXT', 'IMAGE'],
-      },
-    });
+    try {
+        const { media } = await ai.generate({
+        model: 'googleai/gemini-2.0-flash-preview-image-generation',
+        prompt: [
+            { media: { url: imageDataUri } },
+            { text: `Apply a ${filterPrompt} filter to this image.` },
+        ],
+        config: {
+            responseModalities: ['TEXT', 'IMAGE'],
+        },
+        });
 
-    if (!media?.url) {
-      throw new Error('Failed to generate filtered image.');
+        if (!media?.url) {
+            console.error('Failed to generate filtered image, media URL is missing.');
+            return { imageDataUri: null };
+        }
+
+        return { imageDataUri: media.url };
+
+    } catch (e) {
+        console.error("Error applying filter with AI:", e);
+        return { imageDataUri: null };
     }
-
-    return { imageDataUri: media.url };
   }
 );

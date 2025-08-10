@@ -591,12 +591,12 @@ function PolaroidTransformer() {
     
     setIsApplyingFilter(true);
     try {
-      const filteredImage = await applyFilter({
+      const result = await applyFilter({
         imageDataUri: originalCroppedImageSrc,
         filterPrompt: filterPrompt,
       });
-      if(filteredImage?.imageDataUri) {
-        setDisplayImageSrc(filteredImage.imageDataUri);
+      if(result?.imageDataUri) {
+        setDisplayImageSrc(result.imageDataUri);
       } else {
         throw new Error('A imagem filtrada não foi retornada.');
       }
