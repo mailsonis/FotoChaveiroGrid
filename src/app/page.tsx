@@ -548,6 +548,7 @@ function PolaroidTransformer() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isApplyingFilter, setIsApplyingFilter] = useState(false);
   const polaroidRef = useRef<HTMLDivElement>(null);
+  const [symbolsPopoverOpen, setSymbolsPopoverOpen] = useState(false);
 
   const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -659,6 +660,7 @@ function PolaroidTransformer() {
       title: "Copiado!",
       description: `O símbolo "${symbol}" foi copiado para a área de transferência.`,
     });
+    setSymbolsPopoverOpen(false);
   };
 
   return (
@@ -713,13 +715,13 @@ function PolaroidTransformer() {
                             </div>
                         </PopoverContent>
                       </Popover>
-                      <Popover>
+                      <Popover open={symbolsPopoverOpen} onOpenChange={setSymbolsPopoverOpen}>
                         <PopoverTrigger asChild>
                            <Button variant="outline" disabled={!imageSrc}>
                               <Copy className="mr-2 h-4 w-4"/> Símbolos
                            </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-80 md:w-80 max-h-96 overflow-y-auto">
+                        <PopoverContent className="w-80 md:w-80 max-h-96">
                             <ScrollArea className="h-72 w-full">
                               <div className="grid gap-4 p-4">
                                   <h4 className="font-medium leading-none">Copiar Símbolo</h4>
