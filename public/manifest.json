@@ -1,6 +1,6 @@
 {
   "name": "Foto3x4/Polaroid",
-  "short_name": "FotoPWA",
+  "short_name": "Polaroid",
   "description": "Transforme suas fotos em polaroid e grid de imagens 3x4 para impressão.",
   "start_url": "/",
   "display": "standalone",
