@@ -620,7 +620,7 @@ function PolaroidTransformer() {
             <CardHeader className="p-0 mb-6">
               <CardTitle className="font-headline text-3xl font-bold text-primary">Transformador de Fotos em Polaroid</CardTitle>
               <CardDescription className="text-muted-foreground">
-                Recrie a estética de uma foto Polaroid com filtros e textos.
+                Recrie a estética de uma foto Polaroid com textos e símbolos.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 space-y-6">
