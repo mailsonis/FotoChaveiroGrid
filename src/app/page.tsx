@@ -17,7 +17,6 @@ import getCroppedImg from "@/lib/cropImage";
 import { Upload, Download, Scissors, Loader2, Image as ImageIcon, Trash2, Crop, Camera, Type, Sticker, PaintBucket, Smile, Heart, Star, Copy } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import { applyFilter } from "@/ai/flows/apply-filter-flow";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const SIZES_MM: Record<string, { width: number; height: number; name: string }> = {
@@ -527,19 +526,9 @@ const SYMBOLS = {
   Mystical: ['𖤐', 'ツ', '✞', '✿', '𓆩𓆪', '☽', '♀', '❥', '𓂀', '⛧', '∞', '✓', '✘', '♕', '❀', '✦'],
 };
 
-const FILTERS = [
-    { name: 'Nenhum', prompt: 'no filter' },
-    { name: 'Sépia', prompt: 'sepia' },
-    { name: 'Preto e Branco', prompt: 'black and white' },
-    { name: 'Vintage', prompt: 'vintage' },
-    { name: 'Cores Vivas', prompt: 'vibrant colors' },
-    { name: 'Desenho a Lápis', prompt: 'pencil drawing' },
-]
-
 function PolaroidTransformer() {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [originalCroppedImageSrc, setOriginalCroppedImageSrc] = useState<string | null>(null);
-  const [displayImageSrc, setDisplayImageSrc] = useState<string | null>(null);
+  const [croppedImageSrc, setCroppedImageSrc] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
@@ -547,7 +536,6 @@ function PolaroidTransformer() {
   const { toast } = useToast();
   const finalImageRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isApplyingFilter, setIsApplyingFilter] = useState(false);
   const polaroidRef = useRef<HTMLDivElement>(null);
   const [symbolsPopoverOpen, setSymbolsPopoverOpen] = useState(false);
 
@@ -556,8 +544,7 @@ function PolaroidTransformer() {
       const file = e.target.files[0];
       const imageDataUrl = await readFile(file);
       setImageSrc(imageDataUrl);
-      setOriginalCroppedImageSrc(null);
-      setDisplayImageSrc(null);
+      setCroppedImageSrc(null);
       setZoom(1);
       setCrop({ x: 0, y: 0 });
     }
@@ -568,52 +555,13 @@ function PolaroidTransformer() {
     if(imageSrc) {
         try {
             const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
-            setOriginalCroppedImageSrc(croppedImage);
-            setDisplayImageSrc(croppedImage);
+            setCroppedImageSrc(croppedImage);
         } catch (e) {
             console.error(e);
         }
     }
   }, [imageSrc]);
   
-  const handleApplyFilter = async (filterPrompt: string) => {
-    if (!originalCroppedImageSrc) {
-      toast({
-        title: "Imagem não encontrada",
-        description: "Por favor, carregue e corte uma imagem primeiro.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (filterPrompt === 'no filter') {
-      setDisplayImageSrc(originalCroppedImageSrc);
-      return;
-    }
-    
-    setIsApplyingFilter(true);
-    try {
-      const result = await applyFilter({
-        imageDataUri: originalCroppedImageSrc,
-        filterPrompt: filterPrompt,
-      });
-      if(result?.imageDataUri) {
-        setDisplayImageSrc(result.imageDataUri);
-      } else {
-        throw new Error('A imagem filtrada não foi retornada.');
-      }
-    } catch (e) {
-      console.error(e);
-      toast({
-        title: "Erro ao Aplicar Filtro",
-        description: "Não foi possível aplicar o filtro. O serviço pode estar temporariamente indisponível. Tente novamente mais tarde.",
-        variant: "destructive",
-      });
-    } finally {
-        setIsApplyingFilter(false);
-    }
-  };
-
   const downloadPolaroid = async () => {
     if (!imageSrc || !croppedAreaPixels) {
       toast({
@@ -700,22 +648,6 @@ function PolaroidTransformer() {
                <div className="space-y-2">
                   <Label className="font-headline text-lg">4. Ferramentas</Label>
                   <div className="flex gap-2">
-                      <Popover>
-                        <PopoverTrigger asChild>
-                           <Button variant="outline" disabled={!imageSrc}>
-                              <PaintBucket className="mr-2 h-4 w-4"/> Filtros
-                           </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-48">
-                            <div className="grid gap-2">
-                                {FILTERS.map((filter) => (
-                                    <Button key={filter.name} variant="ghost" onClick={() => handleApplyFilter(filter.prompt)}>
-                                        {filter.name}
-                                    </Button>
-                                ))}
-                            </div>
-                        </PopoverContent>
-                      </Popover>
                       <Popover open={symbolsPopoverOpen} onOpenChange={setSymbolsPopoverOpen}>
                         <PopoverTrigger asChild>
                            <Button variant="outline" disabled={!imageSrc}>
@@ -764,11 +696,6 @@ function PolaroidTransformer() {
             style={{fontFamily: "'Gloria Hallelujah', cursive"}}
           >
             <div className="relative w-[268px] h-[268px] bg-gray-200 overflow-hidden aspect-square">
-             {isApplyingFilter && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
-                    <Loader2 className="h-8 w-8 animate-spin text-white"/>
-                </div>
-              )}
               {imageSrc ? (
                 <Cropper
                   image={imageSrc}
@@ -803,7 +730,7 @@ function PolaroidTransformer() {
               style={{fontFamily: "'Gloria Hallelujah', cursive"}}
             >
               <div className="w-[268px] h-[268px] bg-gray-200">
-                  {displayImageSrc && <img src={displayImageSrc} className="w-full h-full object-cover" alt="cropped preview" />}
+                  {croppedImageSrc && <img src={croppedImageSrc} className="w-full h-full object-cover" alt="cropped preview" />}
               </div>
               <div className="w-full flex-grow flex items-center justify-center pt-2">
                 <p className="text-center text-lg text-gray-800 whitespace-pre-wrap">{text}</p>
@@ -845,5 +772,3 @@ export default function Home() {
     </main>
   );
 }
-
-    
