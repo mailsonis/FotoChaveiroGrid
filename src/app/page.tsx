@@ -18,6 +18,7 @@ import { Upload, Download, Scissors, Loader2, Image as ImageIcon, Trash2, Crop, 
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 
 const SIZES_MM: Record<string, { width: number; height: number; name: string }> = {
   '3x4': { width: 30, height: 40, name: '3x4 cm' },
@@ -141,7 +142,7 @@ function FotoChaveiro() {
       const rowsOnLastPage = Math.ceil(imagesOnPage / cols);
       drawCutLinesOnPage(cols, rowsOnLastPage);
 
-      doc.save("foto-chaveiro.pdf");
+      doc.save("foto-3x4.pdf");
     } catch (e) {
       console.error(e);
       const errorMessage = e instanceof Error ? e.message : "Ocorreu um erro desconhecido.";
@@ -384,7 +385,7 @@ function GridChaveiro() {
       const rowsOnLastPage = Math.ceil(imagesOnPage / cols);
       drawCutLinesOnPage(cols, rowsOnLastPage);
 
-      doc.save("grid-chaveiro.pdf");
+      doc.save("grid-3x4.pdf");
     } catch (e) {
       console.error(e);
       const errorMessage = e instanceof Error ? e.message : "Ocorreu um erro desconhecido.";
@@ -522,7 +523,7 @@ const SYMBOLS = {
   Music: ['♪', '♫', '♩', '♬', '♭', '♮', '♯'],
   Stars: ['★', '☆', '✪', '✯', '✡', '✶'],
   Arrows: ['→', '←', '↑', '↓', '↔', '↵'],
-  Misc: ['☺', '☻', '☼', '☁', '⚡', '✿', '❄', '✔', '✖', 'ツ', '✓', '✘'],
+  Misc: ['☺', '☻', '☼', '☁', '⚡', '✿', '❄', '✔', '✖'],
   Mystical: ['𖤐', '✞', '✿', '𓆩𓆪', '☽', '♀', '❥', '𓂀', '⛧', '∞', '♕', '❀', '✦'],
 };
 
@@ -538,6 +539,7 @@ function PolaroidTransformer() {
   const [isGenerating, setIsGenerating] = useState(false);
   const polaroidRef = useRef<HTMLDivElement>(null);
   const [symbolsPopoverOpen, setSymbolsPopoverOpen] = useState(false);
+  const [showBorder, setShowBorder] = useState(true);
 
   const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
@@ -647,7 +649,7 @@ function PolaroidTransformer() {
               )}
                <div className="space-y-2">
                   <Label className="font-headline text-lg">4. Ferramentas</Label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 items-center">
                       <Popover open={symbolsPopoverOpen} onOpenChange={setSymbolsPopoverOpen}>
                         <PopoverTrigger asChild>
                            <Button variant="outline" disabled={!imageSrc}>
@@ -677,6 +679,10 @@ function PolaroidTransformer() {
                             </ScrollArea>
                         </PopoverContent>
                       </Popover>
+                      <div className="flex items-center space-x-2">
+                        <Switch id="border-switch" checked={showBorder} onCheckedChange={setShowBorder} disabled={!imageSrc} />
+                        <Label htmlFor="border-switch">Borda</Label>
+                      </div>
                   </div>
               </div>
             </CardContent>
@@ -692,7 +698,10 @@ function PolaroidTransformer() {
         <div className="bg-muted/30 p-4 md:p-6 flex flex-col items-center justify-center min-h-[300px] md:min-h-0">
           <div 
             ref={polaroidRef}
-            className="relative w-[300px] h-[360px] bg-white shadow-lg rounded-sm p-4 flex flex-col items-center select-none"
+            className={cn(
+              "relative w-[300px] h-[360px] bg-white shadow-lg rounded-sm p-4 flex flex-col items-center select-none",
+              showBorder && "border border-black"
+            )}
             style={{fontFamily: "'Gloria Hallelujah', cursive"}}
           >
             <div className="relative w-[268px] h-[268px] bg-gray-200 overflow-hidden aspect-square">
@@ -726,7 +735,10 @@ function PolaroidTransformer() {
       >
           <div 
               ref={finalImageRef}
-              className="relative w-[300px] h-[360px] bg-white p-4 flex flex-col items-center"
+              className={cn(
+                "relative w-[300px] h-[360px] bg-white p-4 flex flex-col items-center",
+                showBorder && "border border-black"
+              )}
               style={{fontFamily: "'Gloria Hallelujah', cursive"}}
             >
               <div className="w-[268px] h-[268px] bg-gray-200">
@@ -772,3 +784,5 @@ export default function Home() {
     </main>
   );
 }
+
+    
