@@ -555,18 +555,22 @@ function PolaroidTransformer() {
       const newPolaroids: Polaroid[] = [];
       for (const file of files) {
         const imageDataUrl = await readFile(file);
-        newPolaroids.push({
+        const newPolaroid = {
           id: `${file.name}-${Date.now()}`,
           originalSrc: imageDataUrl,
-          croppedSrc: null,
+          croppedSrc: imageDataUrl, // Initially set cropped to original
           text: "",
           crop: { x: 0, y: 0, width: 0, height: 0 },
           zoom: 1,
           croppedAreaPixels: null,
           showBorder: true,
-        });
+        };
+        newPolaroids.push(newPolaroid);
       }
       setPolaroids((prev) => [...prev, ...newPolaroids]);
+      if (newPolaroids.length > 0) {
+        setEditingPolaroidId(newPolaroids[0].id);
+      }
     }
   };
   
@@ -575,10 +579,13 @@ function PolaroidTransformer() {
   };
   
   const removePolaroid = (id: string) => {
-      setPolaroids(prev => prev.filter(p => p.id !== id));
-      if (editingPolaroidId === id) {
-          setEditingPolaroidId(null);
-      }
+      setPolaroids(prev => {
+        const newPolaroids = prev.filter(p => p.id !== id);
+        if (editingPolaroidId === id) {
+          setEditingPolaroidId(newPolaroids.length > 0 ? newPolaroids[0].id : null);
+        }
+        return newPolaroids;
+      });
   };
 
   const onCropComplete = useCallback(async (id: string, _croppedArea: Area, croppedAreaPixels: Area) => {
@@ -826,18 +833,38 @@ function PolaroidTransformer() {
           </CardFooter>
         </div>
 
-        <div className="bg-muted/30 p-4 md:p-6 flex flex-col items-center justify-center min-h-[400px] md:min-h-0">
-          <div className="relative w-[300px] h-[360px] bg-gray-200 rounded-lg shadow-inner overflow-hidden">
+        <div className="bg-muted/30 p-4 md:p-6 flex flex-col items-center justify-center min-h-[400px] md:min-h-0 gap-8">
             {editingPolaroid ? (
-              <Cropper
-                image={editingPolaroid.originalSrc}
-                crop={editingPolaroid.crop as {x: number, y: number}}
-                zoom={editingPolaroid.zoom}
-                aspect={1}
-                onCropChange={(crop) => updatePolaroid(editingPolaroid.id, { crop })}
-                onZoomChange={(zoom) => updatePolaroid(editingPolaroid.id, { zoom })}
-                onCropComplete={(...args) => onCropComplete(editingPolaroid.id, ...args)}
-              />
+                <>
+                    <div className="relative w-full max-w-[300px] aspect-square bg-gray-200 rounded-lg shadow-inner overflow-hidden">
+                        <Cropper
+                            image={editingPolaroid.originalSrc}
+                            crop={editingPolaroid.crop as {x: number, y: number}}
+                            zoom={editingPolaroid.zoom}
+                            aspect={1}
+                            onCropChange={(crop) => updatePolaroid(editingPolaroid.id, { crop })}
+                            onZoomChange={(zoom) => updatePolaroid(editingPolaroid.id, { zoom })}
+                            onCropComplete={(...args) => onCropComplete(editingPolaroid.id, ...args)}
+                            />
+                    </div>
+                    <div>
+                        <h3 className="text-center font-headline text-lg mb-2">Pré-visualização</h3>
+                        <div 
+                            className={cn(
+                                "relative w-[250px] h-[300px] bg-white p-3 flex flex-col items-center shadow-lg",
+                                editingPolaroid.showBorder && "border border-black/80"
+                            )}
+                            style={{fontFamily: "'Gloria Hallelujah', cursive"}}
+                            >
+                            <div className="w-full h-[220px] bg-gray-300">
+                                {editingPolaroid.croppedSrc && <img src={editingPolaroid.croppedSrc} className="w-full h-full object-cover" alt="cropped preview" />}
+                            </div>
+                            <div className="w-full flex-grow flex items-center justify-center pt-2">
+                                <p className="text-center text-base text-gray-800 whitespace-pre-wrap">{editingPolaroid.text}</p>
+                            </div>
+                        </div>
+                    </div>
+                </>
             ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-center text-muted-foreground p-4">
                   <Crop className="h-16 w-16 mb-4 text-primary/20" />
@@ -845,7 +872,6 @@ function PolaroidTransformer() {
                   <p>Selecione uma imagem da lista para ajustar o corte e o zoom.</p>
                 </div>
             )}
-          </div>
         </div>
       </div>
 
