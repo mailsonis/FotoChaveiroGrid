@@ -647,16 +647,14 @@ function PolaroidTransformer() {
       const pageHeight = doc.internal.pageSize.getHeight();
       
       const margin = 10;
-      const polaroidWidthMM = 65; 
-      const polaroidHeightMM = 80;
+      const polaroidWidthMM = 60;
+      const polaroidHeightMM = 72;
       const gap = 5;
-
-      const cols = Math.floor((pageWidth - 2 * margin + gap) / (polaroidWidthMM + gap));
-      const rows = Math.floor((pageHeight - 2 * margin + gap) / (polaroidHeightMM + gap));
+      const cols = 3;
+      const rows = 3;
       
       let x = margin;
       let y = margin;
-      let pageCount = 1;
 
       for (let i = 0; i < polaroids.length; i++) {
         const polaroid = polaroids[i];
@@ -667,19 +665,19 @@ function PolaroidTransformer() {
           doc.addPage();
           x = margin;
           y = margin;
-          pageCount++;
         }
+        
+        const currentImageIndexInPage = i % (cols * rows);
+        const colIndex = currentImageIndexInPage % cols;
+        const rowIndex = Math.floor(currentImageIndexInPage / cols);
+
+        x = margin + colIndex * (polaroidWidthMM + gap);
+        y = margin + rowIndex * (polaroidHeightMM + gap);
 
         const canvas = await html2canvas(element, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' });
         const imgData = canvas.toDataURL('image/png');
         
         doc.addImage(imgData, 'PNG', x, y, polaroidWidthMM, polaroidHeightMM);
-
-        x += polaroidWidthMM + gap;
-        if (x + polaroidWidthMM > pageWidth - margin) {
-          x = margin;
-          y += polaroidHeightMM + gap;
-        }
       }
       
       doc.save('polaroids-grid.pdf');
@@ -760,7 +758,7 @@ function PolaroidTransformer() {
                   </div>
                 </ScrollArea>
               ) : (
-                <div className="w-full h-full flex flex-col items-center justify-center text-center text-muted-foreground p-4 bg-muted/20 rounded-lg mt-2">
+                <div className="w-full h-full flex flex-col items-center justify-center text-center text-muted-foreground p-4 bg-muted/20 rounded-lg mt-2 mb-4">
                   <Camera className="h-16 w-16 mb-4 text-primary/20" />
                   <p>Suas fotos aparecerão aqui.</p>
                 </div>
