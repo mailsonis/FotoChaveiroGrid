@@ -526,7 +526,7 @@ const SYMBOLS = {
   Stars: ['★', '☆', '✪', '✯', '✡', '✶'],
   Arrows: ['→', '←', '↑', '↓', '↔', '↵'],
   Misc: ['☺', '☻', '☼', '☁', '⚡', '✿', '❄', '✔', '✖'],
-  Mystical: ['𖤐', '✞', '✿', '𓆩𓆪', '☽', '♀', '❥', '𓂀', '⛧', '∞', '♕', '❀', '✦'],
+  Mystical: ['𖤐', '✞', '✿', '𓆩𓆪', '♀', '❥', '𓂀', '⛧', '∞', '♕', '❀', '✦'],
 };
 
 type Polaroid = {
@@ -731,7 +731,7 @@ function PolaroidTransformer() {
                 </Label>
               </div>
             </CardContent>
-            <div className="mt-6">
+            <div className="mt-6 mb-6">
               <Label className="font-headline text-lg">2. Editar Polaroids</Label>
                {polaroids.length > 0 ? (
                 <ScrollArea className="h-72 w-full mt-2 pr-4">
@@ -766,7 +766,7 @@ function PolaroidTransformer() {
                 </div>
               )}
             </div>
-             <div className="space-y-2 mt-6">
+             <div className="space-y-2 mt-auto">
                 <Label className="font-headline text-lg">3. Ferramentas de Edição</Label>
                 <div className="flex flex-col gap-4">
                     {editingPolaroid && (
