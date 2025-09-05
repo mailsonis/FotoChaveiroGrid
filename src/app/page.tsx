@@ -11,10 +11,10 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import getCroppedImg from "@/lib/cropImage";
-import { Upload, Download, Scissors, Loader2, Image as ImageIcon, Trash2, Crop, Camera, Type, Sticker, PaintBucket, Smile, Heart, Star, Copy } from 'lucide-react';
+import { Upload, Download, Scissors, Loader2, Image as ImageIcon, Trash2, Crop, Camera, Type, Copy, FileText, Images } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -446,33 +446,35 @@ function GridChaveiro() {
         <div className="bg-muted/30 p-4 md:p-6 flex flex-col min-h-[300px] md:min-h-0">
             <h3 className="font-headline text-xl font-semibold text-primary/80 mb-4">Imagens Selecionadas</h3>
             {images.length > 0 ? (
-              <div className="flex-grow overflow-y-auto pr-2 space-y-4">
-                {images.map(image => (
-                  <div key={image.id} className="flex items-center gap-4 bg-background p-2 rounded-lg shadow-sm">
-                    <img src={image.src} alt="thumbnail" className="w-16 h-16 object-cover rounded-md" />
-                    <div className="flex-grow">
-                       <p className="text-sm font-medium text-ellipsis overflow-hidden whitespace-nowrap w-32" title={image.id.split('-')[0]}>{image.id.split('-')[0]}</p>
-                       <div className="flex items-center gap-2 mt-1">
-                          <Label htmlFor={`quantity-${image.id}`} className="text-xs">Qtd:</Label>
-                          <Input 
-                              id={`quantity-${image.id}`} 
-                              type="number" 
-                              value={image.quantity} 
-                              onChange={(e) => updateQuantity(image.id, parseInt(e.target.value))}
-                              min="1"
-                              className="w-20 h-8"
-                          />
-                       </div>
+              <ScrollArea className="flex-grow pr-2">
+                <div className="space-y-4">
+                  {images.map(image => (
+                    <div key={image.id} className="flex items-center gap-4 bg-background p-2 rounded-lg shadow-sm">
+                      <img src={image.src} alt="thumbnail" className="w-16 h-16 object-cover rounded-md" />
+                      <div className="flex-grow">
+                         <p className="text-sm font-medium text-ellipsis overflow-hidden whitespace-nowrap w-32" title={image.id.split('-')[0]}>{image.id.split('-')[0]}</p>
+                         <div className="flex items-center gap-2 mt-1">
+                            <Label htmlFor={`quantity-${image.id}`} className="text-xs">Qtd:</Label>
+                            <Input 
+                                id={`quantity-${image.id}`} 
+                                type="number" 
+                                value={image.quantity} 
+                                onChange={(e) => updateQuantity(image.id, parseInt(e.target.value))}
+                                min="1"
+                                className="w-20 h-8"
+                            />
+                         </div>
+                      </div>
+                       <Button variant="ghost" size="icon" onClick={() => openEditor(image)} className="text-primary hover:bg-primary/10">
+                          <Crop className="h-4 w-4" />
+                       </Button>
+                       <Button variant="ghost" size="icon" onClick={() => removeImage(image.id)} className="text-destructive hover:bg-destructive/10">
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
-                     <Button variant="ghost" size="icon" onClick={() => openEditor(image)} className="text-primary hover:bg-primary/10">
-                        <Crop className="h-4 w-4" />
-                     </Button>
-                     <Button variant="ghost" size="icon" onClick={() => removeImage(image.id)} className="text-destructive hover:bg-destructive/10">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              </ScrollArea>
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center text-center text-muted-foreground p-4 bg-background rounded-lg">
                   <ImageIcon className="h-16 w-16 mb-4 text-primary/20" />
@@ -527,132 +529,248 @@ const SYMBOLS = {
   Mystical: ['𖤐', '✞', '✿', '𓆩𓆪', '☽', '♀', '❥', '𓂀', '⛧', '∞', '♕', '❀', '✦'],
 };
 
+type Polaroid = {
+  id: string;
+  originalSrc: string;
+  croppedSrc: string | null;
+  text: string;
+  crop: Area;
+  zoom: number;
+  croppedAreaPixels: Area | null;
+  showBorder: boolean;
+};
+
 function PolaroidTransformer() {
-  const [imageSrc, setImageSrc] = useState<string | null>(null);
-  const [croppedImageSrc, setCroppedImageSrc] = useState<string | null>(null);
-  const [crop, setCrop] = useState({ x: 0, y: 0 });
-  const [zoom, setZoom] = useState(1);
-  const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
-  const [text, setText] = useState("");
+  const [polaroids, setPolaroids] = useState<Polaroid[]>([]);
+  const [editingPolaroidId, setEditingPolaroidId] = useState<string | null>(null);
   const { toast } = useToast();
-  const finalImageRef = useRef<HTMLDivElement>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const polaroidRef = useRef<HTMLDivElement>(null);
   const [symbolsPopoverOpen, setSymbolsPopoverOpen] = useState(false);
-  const [showBorder, setShowBorder] = useState(true);
+
+  const finalImageRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      const file = e.target.files[0];
-      const imageDataUrl = await readFile(file);
-      setImageSrc(imageDataUrl);
-      setCroppedImageSrc(null);
-      setZoom(1);
-      setCrop({ x: 0, y: 0 });
+      const files = Array.from(e.target.files);
+      const newPolaroids: Polaroid[] = [];
+      for (const file of files) {
+        const imageDataUrl = await readFile(file);
+        newPolaroids.push({
+          id: `${file.name}-${Date.now()}`,
+          originalSrc: imageDataUrl,
+          croppedSrc: null,
+          text: "",
+          crop: { x: 0, y: 0, width: 0, height: 0 },
+          zoom: 1,
+          croppedAreaPixels: null,
+          showBorder: true,
+        });
+      }
+      setPolaroids((prev) => [...prev, ...newPolaroids]);
     }
   };
+  
+  const updatePolaroid = (id: string, updates: Partial<Polaroid>) => {
+      setPolaroids(prev => prev.map(p => p.id === id ? {...p, ...updates} : p));
+  };
+  
+  const removePolaroid = (id: string) => {
+      setPolaroids(prev => prev.filter(p => p.id !== id));
+      if (editingPolaroidId === id) {
+          setEditingPolaroidId(null);
+      }
+  };
 
-  const onCropComplete = useCallback(async (_croppedArea: Area, croppedAreaPixels: Area) => {
-    setCroppedAreaPixels(croppedAreaPixels);
-    if(imageSrc) {
+  const onCropComplete = useCallback(async (id: string, _croppedArea: Area, croppedAreaPixels: Area) => {
+    const polaroid = polaroids.find(p => p.id === id);
+    if(polaroid) {
         try {
-            const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
-            setCroppedImageSrc(croppedImage);
+            const croppedImage = await getCroppedImg(polaroid.originalSrc, croppedAreaPixels);
+            updatePolaroid(id, { croppedAreaPixels, croppedSrc: croppedImage });
         } catch (e) {
             console.error(e);
         }
     }
-  }, [imageSrc]);
+  }, [polaroids]);
   
-  const downloadPolaroid = async () => {
-    if (!imageSrc || !croppedAreaPixels) {
-      toast({
-        title: "Imagem Faltando",
-        description: "Por favor, carregue e ajuste uma imagem primeiro.",
-        variant: "destructive",
-      });
+  const downloadAllAsPNG = async () => {
+    if (polaroids.length === 0) {
+      toast({ title: "Nenhuma Polaroid", description: "Adicione imagens para começar.", variant: "destructive" });
       return;
     }
     
     setIsGenerating(true);
     try {
         const { default: html2canvas } = await import('html2canvas');
-        const element = finalImageRef.current;
-        if (!element) return;
         
-        const canvas = await html2canvas(element, { 
-            useCORS: true, 
-            allowTaint: true,
-            backgroundColor: null,
-        });
+        for(const polaroid of polaroids) {
+            const element = finalImageRefs.current[polaroid.id];
+            if (!element) continue;
+            
+            const canvas = await html2canvas(element, { useCORS: true, allowTaint: true, backgroundColor: null });
+            const data = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = data;
+            link.download = `polaroid-${polaroid.id}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        toast({ title: "Download Concluído", description: "Suas polaroids foram baixadas."});
 
-        const data = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.href = data;
-        link.download = 'polaroid.png';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
     } catch(e) {
       console.error(e);
-       toast({
-        title: "Erro ao Gerar Imagem",
-        description: "Ocorreu um erro ao tentar gerar a imagem. Tente novamente.",
-        variant: "destructive",
-      });
+       toast({ title: "Erro ao Gerar Imagens", description: "Ocorreu um erro. Tente novamente.", variant: "destructive" });
     } finally {
         setIsGenerating(false);
     }
   };
+
+  const downloadAsPDF = async () => {
+     if (polaroids.length === 0) {
+      toast({ title: "Nenhuma Polaroid", description: "Adicione imagens para começar.", variant: "destructive" });
+      return;
+    }
+    
+    setIsGenerating(true);
+    try {
+      const { default: html2canvas } = await import('html2canvas');
+      const doc = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      
+      const margin = 10;
+      const polaroidWidthMM = 65; 
+      const polaroidHeightMM = 80;
+      const gap = 5;
+
+      const cols = Math.floor((pageWidth - 2 * margin + gap) / (polaroidWidthMM + gap));
+      const rows = Math.floor((pageHeight - 2 * margin + gap) / (polaroidHeightMM + gap));
+      
+      let x = margin;
+      let y = margin;
+      let pageCount = 1;
+
+      for (let i = 0; i < polaroids.length; i++) {
+        const polaroid = polaroids[i];
+        const element = finalImageRefs.current[polaroid.id];
+        if (!element) continue;
+
+        if (i > 0 && i % (cols * rows) === 0) {
+          doc.addPage();
+          x = margin;
+          y = margin;
+          pageCount++;
+        }
+
+        const canvas = await html2canvas(element, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' });
+        const imgData = canvas.toDataURL('image/png');
+        
+        doc.addImage(imgData, 'PNG', x, y, polaroidWidthMM, polaroidHeightMM);
+
+        x += polaroidWidthMM + gap;
+        if (x + polaroidWidthMM > pageWidth - margin) {
+          x = margin;
+          y += polaroidHeightMM + gap;
+        }
+      }
+      
+      doc.save('polaroids-grid.pdf');
+
+    } catch(e) {
+      console.error(e);
+      toast({ title: "Erro ao Gerar PDF", description: "Ocorreu um erro. Tente novamente.", variant: "destructive" });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
   
   const handleCopySymbol = (symbol: string) => {
-    navigator.clipboard.writeText(symbol);
-    toast({
-      title: "Copiado!",
-      description: `O símbolo "${symbol}" foi copiado para a área de transferência.`,
-    });
-    setSymbolsPopoverOpen(false);
+    if (editingPolaroidId) {
+        const polaroid = polaroids.find(p => p.id === editingPolaroidId);
+        if (polaroid) {
+            updatePolaroid(editingPolaroidId, { text: polaroid.text + symbol });
+            navigator.clipboard.writeText(symbol);
+            toast({
+              title: "Copiado!",
+              description: `O símbolo "${symbol}" foi adicionado e copiado.`,
+            });
+            setSymbolsPopoverOpen(false);
+        }
+    } else {
+         toast({ title: "Selecione uma Polaroid", description: "Clique em uma imagem para adicionar símbolos.", variant: "destructive" });
+    }
   };
+
+  const editingPolaroid = polaroids.find(p => p.id === editingPolaroidId);
 
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2">
-        <div className="p-6 md:p-8 flex flex-col justify-between">
-          <div>
+        <div className="p-6 md:p-8 flex flex-col">
             <CardHeader className="p-0 mb-6">
               <CardTitle className="font-headline text-3xl font-bold text-primary">Transformador de Fotos em Polaroid</CardTitle>
               <CardDescription className="text-muted-foreground">
-                Recrie a estética de uma foto Polaroid com textos e símbolos.
+                Crie múltiplas polaroids, adicione legendas e baixe como quiser.
               </CardDescription>
             </CardHeader>
             <CardContent className="p-0 space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="polaroid-upload" className="font-headline text-lg">1. Carregar Foto</Label>
-                <Input id="polaroid-upload" type="file" onChange={onFileChange} accept="image/*" className="hidden" />
+                <Label htmlFor="polaroid-upload" className="font-headline text-lg">1. Carregar Fotos</Label>
+                <Input id="polaroid-upload" type="file" onChange={onFileChange} accept="image/*" className="hidden" multiple/>
                 <Label htmlFor="polaroid-upload" className={cn(buttonVariants({ variant: 'outline' }), "w-full cursor-pointer bg-transparent hover:bg-primary/5 border-primary/30 text-primary hover:text-primary")}>
                   <Upload className="mr-2 h-4 w-4" />
-                  {imageSrc ? "Trocar Imagem" : "Selecionar Imagem"}
+                  Selecionar Imagens
                 </Label>
               </div>
-              
-              {imageSrc && (
-                  <>
-                      <div className="space-y-2">
-                          <Label htmlFor="polaroid-zoom" className="font-headline text-lg">2. Ajuste o Zoom</Label>
-                          <Slider id="polaroid-zoom" value={[zoom]} onValueChange={([val]) => setZoom(val)} min={1} max={3} step={0.1} />
-                      </div>
-                       <div className="space-y-2">
-                          <Label htmlFor="polaroid-text" className="font-headline text-lg">3. Adicionar Texto</Label>
-                          <Input id="polaroid-text" type="text" value={text} onChange={(e) => setText(e.target.value)} placeholder="Escreva algo..." />
-                      </div>
-                  </>
+            </CardContent>
+            <div className="mt-6">
+              <Label className="font-headline text-lg">2. Editar Polaroids</Label>
+               {polaroids.length > 0 ? (
+                <ScrollArea className="h-72 w-full mt-2 pr-4">
+                  <div className="space-y-4">
+                      {polaroids.map(p => (
+                          <div key={p.id} className={cn("flex items-center gap-4 bg-background p-2 rounded-lg shadow-sm cursor-pointer border-2", editingPolaroidId === p.id ? "border-primary" : "border-transparent")} onClick={() => setEditingPolaroidId(p.id)}>
+                              <img src={p.croppedSrc || p.originalSrc} alt="thumbnail" className="w-16 h-16 object-cover rounded-md" />
+                              <div className="flex-grow">
+                                  <Input 
+                                      type="text" 
+                                      value={p.text} 
+                                      onChange={(e) => updatePolaroid(p.id, { text: e.target.value })}
+                                      placeholder="Adicionar legenda..."
+                                      className="border-0 bg-transparent focus-visible:ring-0"
+                                      onClick={(e) => e.stopPropagation()}
+                                  />
+                              </div>
+                              <div className="flex items-center">
+                                <Switch checked={p.showBorder} onCheckedChange={(checked) => updatePolaroid(p.id, {showBorder: checked})} onClick={(e) => e.stopPropagation()}/>
+                                <Button variant="ghost" size="icon" onClick={(e) => { e.stopPropagation(); removePolaroid(p.id)}} className="text-destructive hover:bg-destructive/10">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                          </div>
+                      ))}
+                  </div>
+                </ScrollArea>
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-center text-muted-foreground p-4 bg-muted/20 rounded-lg mt-2">
+                  <Camera className="h-16 w-16 mb-4 text-primary/20" />
+                  <p>Suas fotos aparecerão aqui.</p>
+                </div>
               )}
-               <div className="space-y-2">
-                  <Label className="font-headline text-lg">4. Ferramentas</Label>
-                  <div className="flex gap-2 items-center">
-                      <Popover open={symbolsPopoverOpen} onOpenChange={setSymbolsPopoverOpen}>
+            </div>
+             <div className="space-y-2 mt-6">
+                <Label className="font-headline text-lg">3. Ferramentas de Edição</Label>
+                <div className="flex flex-col gap-4">
+                    {editingPolaroid && (
+                      <div className="space-y-2">
+                          <Label htmlFor="polaroid-zoom">Zoom</Label>
+                          <Slider id="polaroid-zoom" value={[editingPolaroid.zoom]} onValueChange={([val]) => updatePolaroid(editingPolaroid.id, {zoom: val})} min={1} max={3} step={0.1} />
+                      </div>
+                    )}
+                     <Popover open={symbolsPopoverOpen} onOpenChange={setSymbolsPopoverOpen}>
                         <PopoverTrigger asChild>
-                           <Button variant="outline" disabled={!imageSrc}>
+                           <Button variant="outline" disabled={!editingPolaroidId}>
                               <Copy className="mr-2 h-4 w-4"/> Símbolos
                            </Button>
                         </PopoverTrigger>
@@ -661,14 +779,14 @@ function PolaroidTransformer() {
                               <div className="grid gap-4 p-4">
                                   <h4 className="font-medium leading-none">Copiar Símbolo</h4>
                                   <p className="text-sm text-muted-foreground">
-                                    Clique em um símbolo para copiá-lo e cole no campo de texto.
+                                    Clique em um símbolo para adicioná-lo à legenda.
                                   </p>
                                   {Object.entries(SYMBOLS).map(([category, list]) => (
                                       <div key={category}>
                                           <p className="text-sm text-muted-foreground mb-2">{category}</p>
                                           <div className="flex flex-wrap gap-1">
-                                              {list.map((symbol) => (
-                                                  <Button key={symbol} variant="ghost" size="icon" className="text-lg" onClick={() => handleCopySymbol(symbol)}>
+                                              {list.map((symbol, index) => (
+                                                  <Button key={`${symbol}-${index}`} variant="ghost" size="icon" className="text-lg" onClick={() => handleCopySymbol(symbol)}>
                                                       {symbol}
                                                   </Button>
                                               ))}
@@ -679,75 +797,78 @@ function PolaroidTransformer() {
                             </ScrollArea>
                         </PopoverContent>
                       </Popover>
-                      <div className="flex items-center space-x-2">
-                        <Switch id="border-switch" checked={showBorder} onCheckedChange={setShowBorder} disabled={!imageSrc} />
-                        <Label htmlFor="border-switch">Borda</Label>
+                </div>
+            </div>
+            <CardFooter className="p-0 mt-auto pt-8">
+              <Dialog>
+                  <DialogTrigger asChild>
+                      <Button disabled={polaroids.length === 0 || isGenerating} className="w-full text-lg py-6">
+                          <Download className="mr-2 h-5 w-5" />
+                          Baixar
+                      </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                      <DialogHeader>
+                          <DialogTitle>Escolha o formato de download</DialogTitle>
+                      </DialogHeader>
+                      <div className="grid grid-cols-2 gap-4 py-4">
+                          <Button variant="outline" onClick={downloadAllAsPNG} disabled={isGenerating}>
+                              {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Images className="mr-2 h-4 w-4"/>}
+                              PNGs Individuais
+                          </Button>
+                          <Button variant="outline" onClick={downloadAsPDF} disabled={isGenerating}>
+                              {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <FileText className="mr-2 h-4 w-4"/>}
+                              Grid em PDF (A4)
+                          </Button>
                       </div>
-                  </div>
-              </div>
-            </CardContent>
-          </div>
-          <CardFooter className="p-0 mt-8">
-              <Button onClick={downloadPolaroid} disabled={!imageSrc || isGenerating} className="w-full text-lg py-6">
-                   {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Download className="mr-2 h-5 w-5" />}
-                  Baixar Polaroid
-              </Button>
+                  </DialogContent>
+              </Dialog>
           </CardFooter>
         </div>
 
-        <div className="bg-muted/30 p-4 md:p-6 flex flex-col items-center justify-center min-h-[300px] md:min-h-0">
-          <div 
-            ref={polaroidRef}
-            className={cn(
-              "relative w-[300px] h-[360px] bg-white shadow-lg rounded-sm p-4 flex flex-col items-center select-none",
-              showBorder && "border border-black"
+        <div className="bg-muted/30 p-4 md:p-6 flex flex-col items-center justify-center min-h-[400px] md:min-h-0">
+          <div className="relative w-[300px] h-[360px] bg-gray-200 rounded-lg shadow-inner overflow-hidden">
+            {editingPolaroid ? (
+              <Cropper
+                image={editingPolaroid.originalSrc}
+                crop={editingPolaroid.crop as {x: number, y: number}}
+                zoom={editingPolaroid.zoom}
+                aspect={1}
+                onCropChange={(crop) => updatePolaroid(editingPolaroid.id, { crop })}
+                onZoomChange={(zoom) => updatePolaroid(editingPolaroid.id, { zoom })}
+                onCropComplete={(...args) => onCropComplete(editingPolaroid.id, ...args)}
+              />
+            ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-center text-muted-foreground p-4">
+                  <Crop className="h-16 w-16 mb-4 text-primary/20" />
+                  <h3 className="font-headline text-xl font-semibold text-primary/80">Área de Edição</h3>
+                  <p>Selecione uma imagem da lista para ajustar o corte e o zoom.</p>
+                </div>
             )}
-            style={{fontFamily: "'Gloria Hallelujah', cursive"}}
-          >
-            <div className="relative w-[268px] h-[268px] bg-gray-200 overflow-hidden aspect-square">
-              {imageSrc ? (
-                <Cropper
-                  image={imageSrc}
-                  crop={crop}
-                  zoom={zoom}
-                  aspect={1}
-                  onCropChange={setCrop}
-                  onZoomChange={setZoom}
-                  onCropComplete={onCropComplete}
-                />
-              ) : (
-                  <div className="w-full h-full flex flex-col items-center justify-center text-center text-muted-foreground p-4">
-                    <Camera className="h-16 w-16 mb-4 text-primary/20" />
-                  </div>
-              )}
-            </div>
-            <div className="w-full flex-grow flex items-center justify-center pt-2">
-              <p className="text-center text-lg text-gray-800 whitespace-pre-wrap">{text}</p>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Hidden element for canvas capture */}
-      <div
-          className="absolute -z-10"
-          style={{left: '-9999px', top: '0px' }}
-      >
-          <div 
-              ref={finalImageRef}
-              className={cn(
-                "relative w-[300px] h-[360px] bg-white p-4 flex flex-col items-center",
-                showBorder && "border border-black"
-              )}
-              style={{fontFamily: "'Gloria Hallelujah', cursive"}}
-            >
-              <div className="w-[268px] h-[268px] bg-gray-200">
-                  {croppedImageSrc && <img src={croppedImageSrc} className="w-full h-full object-cover" alt="cropped preview" />}
+      {/* Hidden elements for canvas capture */}
+      <div className="absolute -z-10" style={{left: '-9999px', top: '0px' }}>
+          {polaroids.map(p => (
+              <div 
+                  key={p.id}
+                  ref={(el) => { finalImageRefs.current[p.id] = el; }}
+                  className={cn(
+                    "relative w-[300px] h-[360px] bg-white p-4 flex flex-col items-center",
+                    p.showBorder && "border border-black"
+                  )}
+                  style={{fontFamily: "'Gloria Hallelujah', cursive"}}
+                >
+                  <div className="w-[268px] h-[268px] bg-gray-200">
+                      {p.croppedSrc && <img src={p.croppedSrc} className="w-full h-full object-cover" alt="cropped preview" />}
+                  </div>
+                  <div className="w-full flex-grow flex items-center justify-center pt-2">
+                    <p className="text-center text-lg text-gray-800 whitespace-pre-wrap">{p.text}</p>
+                  </div>
               </div>
-              <div className="w-full flex-grow flex items-center justify-center pt-2">
-                <p className="text-center text-lg text-gray-800 whitespace-pre-wrap">{text}</p>
-              </div>
-          </div>
+          ))}
       </div>
     </>
   );
@@ -784,5 +905,3 @@ export default function Home() {
     </main>
   );
 }
-
-    
