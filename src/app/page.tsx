@@ -765,7 +765,7 @@ function PolaroidTransformer() {
                   <p>Suas fotos aparecerão aqui.</p>
                 </div>
               )}
-            </div>
+            </div><br/>
              <div className="space-y-2 mt-auto">
                 <Label className="font-headline text-lg">3. Ferramentas de Edição</Label>
                 <div className="flex flex-col gap-4">
@@ -818,7 +818,7 @@ function PolaroidTransformer() {
                       <DialogHeader>
                           <DialogTitle>Escolha o formato de download</DialogTitle>
                       </DialogHeader>
-                      <div className="grid grid-cols-2 gap-4 py-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
                           <Button variant="outline" onClick={downloadAllAsPNG} disabled={isGenerating}>
                               {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Images className="mr-2 h-4 w-4"/>}
                               PNGs Individuais
