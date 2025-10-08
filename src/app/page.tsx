@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import getCroppedImg from "@/lib/cropImage";
-import { Upload, Download, Scissors, Loader2, Image as ImageIcon, Trash2, Crop, Camera, Type, Copy, FileText, Images } from 'lucide-react';
+import { Upload, Download, Scissors, Loader2, Image as ImageIcon, Trash2, Crop, Camera, Copy, FileText, Images } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -614,7 +614,7 @@ function PolaroidTransformer() {
             const element = finalImageRefs.current[polaroid.id];
             if (!element) continue;
             
-            const canvas = await html2canvas(element, { useCORS: true, allowTaint: true, backgroundColor: null });
+            const canvas = await html2canvas(element, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null });
             const data = canvas.toDataURL('image/png');
             const link = document.createElement('a');
             link.href = data;
