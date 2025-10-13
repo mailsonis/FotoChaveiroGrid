@@ -328,32 +328,39 @@ function GridChaveiro() {
         }
       });
       
+      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      
       if (keychainSize === '10x15') {
-        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
         const imgWidth = 100;
         const imgHeight = 150;
-        const margin = (pageHeight - (imgWidth * 2)) / 3;
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
         
+        const cols = Math.floor(pageWidth / imgWidth);
+        const rows = Math.floor(pageHeight / imgHeight);
+        const imagesPerPage = cols * rows;
+
+        const xMargin = (pageWidth - (cols * imgWidth)) / 2;
+        const yMargin = (pageHeight - (rows * imgHeight)) / 2;
+
         for (let i = 0; i < allImagesToPrint.length; i++) {
-          const pageIndex = Math.floor(i / 4);
-          const indexOnPage = i % 4;
+            const pageIndex = Math.floor(i / imagesPerPage);
+            if (i > 0 && i % imagesPerPage === 0) {
+                doc.addPage();
+            }
+            
+            const indexOnPage = i % imagesPerPage;
+            const colIndex = indexOnPage % cols;
+            const rowIndex = Math.floor(indexOnPage / cols);
+            
+            const x = xMargin + (colIndex * imgWidth);
+            const y = yMargin + (rowIndex * imgHeight);
 
-          if (i > 0 && indexOnPage === 0) {
-            doc.addPage();
-          }
-
-          const x = (indexOnPage % 2) * (imgHeight + margin) + ((pageWidth - (imgHeight*2+margin))/2);
-          const y = Math.floor(indexOnPage / 2) * (imgWidth + margin) + margin;
-          
-          doc.addImage(allImagesToPrint[i], 'JPEG', x, y, imgHeight, imgWidth, undefined, 'NONE', -90);
+            doc.addImage(allImagesToPrint[i], 'JPEG', x, y, imgWidth, imgHeight);
         }
-
         doc.save("grid-10x15.pdf");
 
       } else {
-        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
         const { width: imgWidth, height: imgHeight } = SIZES_MM[keychainSize];
         const margin = 5;
         const colGap = 0;
