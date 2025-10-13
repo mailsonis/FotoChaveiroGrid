@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import getCroppedImg from "@/lib/cropImage";
 import { Upload, Download, Scissors, Loader2, Image as ImageIcon, Trash2, Crop, Camera, Copy, FileText, Images } from 'lucide-react';
@@ -24,6 +24,7 @@ const SIZES_MM: Record<string, { width: number; height: number; name: string }> 
   '3x4': { width: 30, height: 40, name: '3x4 cm' },
   '3.5x4.5': { width: 35, height: 45, name: '3,5x4,5 cm' },
   '2.5x3.5': { width: 25, height: 35, name: '2,5x3,5 cm' },
+  '10x15': { width: 100, height: 150, name: '10x15 cm' },
 };
 
 function readFile(file: File): Promise<string> {
@@ -185,7 +186,7 @@ function FotoChaveiro() {
                           <SelectValue placeholder="Selecione o tamanho" />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(SIZES_MM).map(([key, { name }]) => (
+                          {Object.entries(SIZES_MM).filter(([key]) => key !== '10x15').map(([key, { name }]) => (
                             <SelectItem key={key} value={key}>{name}</SelectItem>
                           ))}
                         </SelectContent>
@@ -614,7 +615,7 @@ function PolaroidTransformer() {
             const element = finalImageRefs.current[polaroid.id];
             if (!element) continue;
             
-            const canvas = await html2canvas(element, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: null });
+            const canvas = await html2canvas(element, { scale: 4, useCORS: true, allowTaint: true, backgroundColor: null });
             const data = canvas.toDataURL('image/png');
             const link = document.createElement('a');
             link.href = data;
@@ -674,7 +675,7 @@ function PolaroidTransformer() {
         x = margin + colIndex * (polaroidWidthMM + gap);
         y = margin + rowIndex * (polaroidHeightMM + gap);
 
-        const canvas = await html2canvas(element, { scale: 3, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' });
+        const canvas = await html2canvas(element, { scale: 4, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' });
         const imgData = canvas.toDataURL('image/png');
         
         doc.addImage(imgData, 'PNG', x, y, polaroidWidthMM, polaroidHeightMM);
@@ -826,6 +827,11 @@ function PolaroidTransformer() {
                               Grid em PDF (A4)
                           </Button>
                       </div>
+                      <DialogFooter>
+                          <DialogClose asChild>
+                              <Button variant="ghost">Fechar</Button>
+                          </DialogClose>
+                      </DialogFooter>
                   </DialogContent>
               </Dialog>
           </CardFooter>
