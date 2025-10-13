@@ -421,9 +421,7 @@ function GridChaveiro() {
     }
   };
 
-  const aspect = keychainSize === '10x15' 
-    ? SIZES_MM[keychainSize].height / SIZES_MM[keychainSize].width 
-    : SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height;
+  const aspect = SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height;
 
   return (
     <>
