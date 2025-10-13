@@ -321,19 +321,6 @@ function GridChaveiro() {
 
     setIsGenerating(true);
     try {
-      const doc = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
-
-      const { width: imgWidth, height: imgHeight } = SIZES_MM[keychainSize];
-      const margin = 5;
-      const colGap = 0;
-      const rowGap = 0;
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
-
       const allImagesToPrint: string[] = [];
       images.forEach(img => {
         for(let i=0; i < img.quantity; i++) {
@@ -341,52 +328,86 @@ function GridChaveiro() {
         }
       });
       
-      let x = margin;
-      let y = margin;
-      
-      const drawCutLinesOnPage = (cols: number, rows: number) => {
-        doc.setLineDashPattern([1, 1], 0);
-        doc.setDrawColor(150, 150, 150);
-        doc.setLineWidth(0.1);
+      if (keychainSize === '10x15') {
+        const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const imgWidth = 100;
+        const imgHeight = 150;
+        const margin = (pageHeight - (imgWidth * 2)) / 3;
+        
+        for (let i = 0; i < allImagesToPrint.length; i++) {
+          const pageIndex = Math.floor(i / 4);
+          const indexOnPage = i % 4;
 
-        for(let i = 1; i < rows; i++) {
-            const lineY = margin + i * (imgHeight + rowGap);
-            doc.line(margin, lineY, margin + cols * (imgWidth + colGap) - colGap, lineY);
+          if (i > 0 && indexOnPage === 0) {
+            doc.addPage();
+          }
+
+          const x = (indexOnPage % 2) * (imgHeight + margin) + ((pageWidth - (imgHeight*2+margin))/2);
+          const y = Math.floor(indexOnPage / 2) * (imgWidth + margin) + margin;
+          
+          doc.addImage(allImagesToPrint[i], 'JPEG', x, y, imgHeight, imgWidth, undefined, 'NONE', -90);
         }
 
-        for (let j = 1; j < cols; j++) {
-            const lineX = margin + j * (imgWidth + colGap);
-            doc.line(lineX, margin, lineX, margin + rows * (imgHeight + rowGap) - rowGap);
-        }
-      };
-      
-      const cols = Math.floor((pageWidth - 2 * margin + colGap) / (imgWidth + colGap));
-      let imagesOnPage = 0;
+        doc.save("grid-10x15.pdf");
 
-      for (const imageSrc of allImagesToPrint) {
-        if (x + imgWidth > pageWidth - margin + 0.1) {
-          x = margin;
-          y += imgHeight + rowGap;
-        }
+      } else {
+        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+        const { width: imgWidth, height: imgHeight } = SIZES_MM[keychainSize];
+        const margin = 5;
+        const colGap = 0;
+        const rowGap = 0;
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
 
-        if (y + imgHeight > pageHeight - margin + 0.1) {
-          const rowsOnThisPage = Math.ceil(imagesOnPage / cols);
-          drawCutLinesOnPage(cols, rowsOnThisPage);
-          doc.addPage();
-          x = margin;
-          y = margin;
-          imagesOnPage = 0;
-        }
+        let x = margin;
+        let y = margin;
+        
+        const drawCutLinesOnPage = (cols: number, rows: number) => {
+          doc.setLineDashPattern([1, 1], 0);
+          doc.setDrawColor(150, 150, 150);
+          doc.setLineWidth(0.1);
 
-        doc.addImage(imageSrc, 'JPEG', x, y, imgWidth, imgHeight);
-        x += imgWidth + colGap;
-        imagesOnPage++;
+          for(let i = 1; i < rows; i++) {
+              const lineY = margin + i * (imgHeight + rowGap);
+              doc.line(margin, lineY, margin + cols * (imgWidth + colGap) - colGap, lineY);
+          }
+
+          for (let j = 1; j < cols; j++) {
+              const lineX = margin + j * (imgWidth + colGap);
+              doc.line(lineX, margin, lineX, margin + rows * (imgHeight + rowGap) - rowGap);
+          }
+        };
+        
+        const cols = Math.floor((pageWidth - 2 * margin + colGap) / (imgWidth + colGap));
+        let imagesOnPage = 0;
+
+        for (const imageSrc of allImagesToPrint) {
+          if (x + imgWidth > pageWidth - margin + 0.1) {
+            x = margin;
+            y += imgHeight + rowGap;
+          }
+
+          if (y + imgHeight > pageHeight - margin + 0.1) {
+            const rowsOnThisPage = Math.ceil(imagesOnPage / cols);
+            drawCutLinesOnPage(cols, rowsOnThisPage);
+            doc.addPage();
+            x = margin;
+            y = margin;
+            imagesOnPage = 0;
+          }
+
+          doc.addImage(imageSrc, 'JPEG', x, y, imgWidth, imgHeight);
+          x += imgWidth + colGap;
+          imagesOnPage++;
+        }
+        
+        const rowsOnLastPage = Math.ceil(imagesOnPage / cols);
+        drawCutLinesOnPage(cols, rowsOnLastPage);
+        doc.save("grid-3x4.pdf");
       }
-      
-      const rowsOnLastPage = Math.ceil(imagesOnPage / cols);
-      drawCutLinesOnPage(cols, rowsOnLastPage);
 
-      doc.save("grid-3x4.pdf");
     } catch (e) {
       console.error(e);
       const errorMessage = e instanceof Error ? e.message : "Ocorreu um erro desconhecido.";
@@ -400,7 +421,9 @@ function GridChaveiro() {
     }
   };
 
-  const aspect = SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height;
+  const aspect = keychainSize === '10x15' 
+    ? SIZES_MM[keychainSize].height / SIZES_MM[keychainSize].width 
+    : SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height;
 
   return (
     <>
