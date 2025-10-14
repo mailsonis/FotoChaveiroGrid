@@ -304,24 +304,27 @@ function GridChaveiro() {
         const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
         const imgWidth = 100;
         const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
         let currentImageIndex = 0;
+        let pageCount = 0;
 
         while(currentImageIndex < allImagesToPrint.length) {
-            if (currentImageIndex > 0 && currentImageIndex % 2 === 0) {
+            if (pageCount > 0) {
                 doc.addPage('a4', 'p');
             }
+            pageCount++;
             
-            const marginX = (pageWidth - 2 * imgWidth) / 3;
-            const marginY = 20;
+            const imagesOnThisPage = allImagesToPrint.slice(currentImageIndex, currentImageIndex + 2);
+            const marginX = (pageWidth - (imagesOnThisPage.length * imgWidth)) / (imagesOnThisPage.length + 1);
+            const marginY = (pageHeight - SIZES_MM['10x15'].height) / 2;
 
-            const imageSrc = allImagesToPrint[currentImageIndex];
-            const imageIndexOnPage = currentImageIndex % 2;
+            imagesOnThisPage.forEach((imageSrc, index) => {
+              const x = marginX * (index + 1) + imgWidth * index;
+              const y = marginY;
+              doc.addImage(imageSrc, 'JPEG', x, y, imgWidth, 0);
+            });
 
-            const x = marginX * (imageIndexOnPage + 1) + imgWidth * imageIndexOnPage;
-            const y = marginY;
-
-            doc.addImage(imageSrc, 'JPEG', x, y, imgWidth, 0);
-            currentImageIndex++;
+            currentImageIndex += imagesOnThisPage.length;
         }
         doc.save("grid-10x15.pdf");
 
@@ -369,7 +372,7 @@ function GridChaveiro() {
     }
   };
 
-  const aspect = keychainSize === '10x15' ? SIZES_MM['10x15'].width / SIZES_MM['10x15'].height : SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height;
+  const aspect = SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height;
 
   return (
     <>
@@ -500,11 +503,11 @@ const SYMBOLS = {
 };
 
 const FONTS = [
+  { name: "Manuscrito", value: "'Gloria Hallelujah', cursive" },
   { name: "Amatic", value: "'Amatic SC', cursive" },
   { name: "Patrick", value: "'Patrick Hand', cursive" },
   { name: "Shadows", value: "'Shadows Into Light', cursive" },
   { name: "Dancing", value: "'Dancing Script', cursive" },
-  { name: "Manuscrito", value: "'Gloria Hallelujah', cursive" },
 ]
 
 type Polaroid = {
