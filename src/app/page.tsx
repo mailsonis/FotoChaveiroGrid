@@ -331,33 +331,30 @@ function GridChaveiro() {
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       
       if (keychainSize === '10x15') {
-          const imgWidth = 100;
-          const imgHeight = 150;
-          const pageWidth = doc.internal.pageSize.getWidth();
-          const pageHeight = doc.internal.pageSize.getHeight();
-          
-          const cols = Math.floor(pageWidth / imgWidth);
-          const rows = Math.floor(pageHeight / imgHeight);
-          const imagesPerPage = cols * rows;
-
-          const xMargin = (pageWidth - (cols * imgWidth)) / (cols + 1);
-          const yMargin = (pageHeight - (rows * imgHeight)) / (rows + 1);
+          doc.deletePage(1); // Start with a fresh set of pages
 
           for (let i = 0; i < allImagesToPrint.length; i++) {
-              if (i > 0 && i % imagesPerPage === 0) {
-                  doc.addPage();
-              }
+              doc.addPage('a4', 'p');
+              const pageIndex = doc.internal.pages.length - 1;
+              doc.setPage(pageIndex);
               
-              const indexOnPage = i % imagesPerPage;
-              const colIndex = indexOnPage % cols;
-              const rowIndex = Math.floor(indexOnPage / cols);
+              const imgWidth = 100;
+              const imgHeight = 150;
+              const pageWidth = doc.internal.pageSize.getWidth();
+              const pageHeight = doc.internal.pageSize.getHeight();
               
-              const x = xMargin + (colIndex * (imgWidth + xMargin));
-              const y = yMargin + (rowIndex * (imgHeight + yMargin));
+              const x1 = (pageWidth - 2 * imgWidth) / 3;
+              const x2 = x1 * 2 + imgWidth;
+              const y = (pageHeight - imgHeight) / 2;
 
-              doc.addImage(allImagesToPrint[i], 'JPEG', x, y, imgWidth, imgHeight);
+              doc.addImage(allImagesToPrint[i], 'JPEG', x1, y, imgWidth, imgHeight);
+              i++;
+              
+              if(i < allImagesToPrint.length){
+                  doc.addImage(allImagesToPrint[i], 'JPEG', x2, y, imgWidth, imgHeight);
+              }
           }
-        doc.save("grid-10x15.pdf");
+          doc.save("grid-10x15.pdf");
 
       } else {
         const { width: imgWidth, height: imgHeight } = SIZES_MM[keychainSize];
@@ -427,9 +424,7 @@ function GridChaveiro() {
     }
   };
 
-  const aspect = keychainSize === '10x15' 
-    ? SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height
-    : SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height;
+  const aspect = SIZES_MM[keychainSize].height / SIZES_MM[keychainSize].width
 
   return (
     <>
@@ -565,7 +560,6 @@ const FONTS = [
   { name: "Patrick", value: "'Patrick Hand', cursive" },
   { name: "Shadows", value: "'Shadows Into Light', cursive" },
   { name: "Dancing", value: "'Dancing Script', cursive" },
-  { name: "Rock", value: "'Rock Salt', cursive" },
 ]
 
 type Polaroid = {
