@@ -91,35 +91,14 @@ function FotoChaveiro() {
 
       const { width: imgWidth, height: imgHeight } = SIZES_MM[keychainSize];
       const margin = 5;
-      const colGap = 0;
-      const rowGap = 0;
+      const colGap = 10;
+      const rowGap = 10;
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
 
       let x = margin;
       let y = margin;
       
-      const drawCutLinesOnPage = (cols: number, rows: number) => {
-        doc.setLineDashPattern([1, 1], 0);
-        doc.setDrawColor(150, 150, 150); // Gray color for lines
-        doc.setLineWidth(0.1);
-
-        // Draw horizontal lines
-        for(let i = 1; i < rows; i++) {
-            const lineY = margin + i * (imgHeight + rowGap);
-            doc.line(margin, lineY, margin + cols * (imgWidth + colGap) - colGap, lineY);
-        }
-
-        // Draw vertical lines
-        for (let j = 1; j < cols; j++) {
-            const lineX = margin + j * (imgWidth + colGap);
-            doc.line(lineX, margin, lineX, margin + rows * (imgHeight + rowGap) - rowGap);
-        }
-      };
-      
-      const cols = Math.floor((pageWidth - 2 * margin + colGap) / (imgWidth + colGap));
-      let imagesOnPage = 0;
-
       for (let i = 0; i < quantity; i++) {
         if (x + imgWidth > pageWidth - margin + 0.1) {
           x = margin;
@@ -127,22 +106,15 @@ function FotoChaveiro() {
         }
 
         if (y + imgHeight > pageHeight - margin + 0.1) {
-          const rowsOnThisPage = Math.ceil(imagesOnPage / cols);
-          drawCutLinesOnPage(cols, rowsOnThisPage);
           doc.addPage();
           x = margin;
           y = margin;
-          imagesOnPage = 0;
         }
 
         doc.addImage(croppedImage, 'JPEG', x, y, imgWidth, imgHeight);
         x += imgWidth + colGap;
-        imagesOnPage++;
       }
       
-      const rowsOnLastPage = Math.ceil(imagesOnPage / cols);
-      drawCutLinesOnPage(cols, rowsOnLastPage);
-
       doc.save("foto-3x4.pdf");
     } catch (e) {
       console.error(e);
@@ -332,19 +304,27 @@ function GridChaveiro() {
         const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
         const imgWidth = 100;
         const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
-        const marginX = (pageWidth - 2 * imgWidth) / 3;
-        const marginY = 20;
+        let currentImage = 0;
 
-        for (let i = 0; i < allImagesToPrint.length; i++) {
-            if (i > 0 && i % 2 === 0) {
+        while(currentImage < allImagesToPrint.length) {
+            const marginX = (pageWidth - 2 * imgWidth) / 3;
+            const marginY = 20;
+
+            const x1 = marginX;
+            const y1 = marginY;
+            doc.addImage(allImagesToPrint[currentImage], 'JPEG', x1, y1, imgWidth, 0);
+            currentImage++;
+
+            if(currentImage < allImagesToPrint.length) {
+                const x2 = 2 * marginX + imgWidth;
+                const y2 = marginY;
+                doc.addImage(allImagesToPrint[currentImage], 'JPEG', x2, y2, imgWidth, 0);
+                currentImage++;
+            }
+
+            if(currentImage < allImagesToPrint.length) {
                 doc.addPage('a4', 'p');
             }
-            
-            const x = (i % 2 === 0) ? marginX : (2 * marginX + imgWidth);
-            const y = marginY;
-            
-            doc.addImage(allImagesToPrint[i], 'JPEG', x, y, imgWidth, 0);
         }
         doc.save("grid-10x15.pdf");
 
@@ -352,33 +332,14 @@ function GridChaveiro() {
         const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
         const { width: imgWidth, height: imgHeight } = SIZES_MM[keychainSize];
         const margin = 5;
-        const colGap = 0;
-        const rowGap = 0;
+        const colGap = 10;
+        const rowGap = 10;
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
 
         let x = margin;
         let y = margin;
         
-        const drawCutLinesOnPage = (cols: number, rows: number) => {
-          doc.setLineDashPattern([1, 1], 0);
-          doc.setDrawColor(150, 150, 150);
-          doc.setLineWidth(0.1);
-
-          for(let i = 1; i < rows; i++) {
-              const lineY = margin + i * (imgHeight + rowGap);
-              doc.line(margin, lineY, margin + cols * (imgWidth + colGap) - colGap, lineY);
-          }
-
-          for (let j = 1; j < cols; j++) {
-              const lineX = margin + j * (imgWidth + colGap);
-              doc.line(lineX, margin, lineX, margin + rows * (imgHeight + rowGap) - rowGap);
-          }
-        };
-        
-        const cols = Math.floor((pageWidth - 2 * margin + colGap) / (imgWidth + colGap));
-        let imagesOnPage = 0;
-
         for (const imageSrc of allImagesToPrint) {
           if (x + imgWidth > pageWidth - margin + 0.1) {
             x = margin;
@@ -386,21 +347,15 @@ function GridChaveiro() {
           }
 
           if (y + imgHeight > pageHeight - margin + 0.1) {
-            const rowsOnThisPage = Math.ceil(imagesOnPage / cols);
-            drawCutLinesOnPage(cols, rowsOnThisPage);
             doc.addPage();
             x = margin;
             y = margin;
-            imagesOnPage = 0;
           }
 
           doc.addImage(imageSrc, 'JPEG', x, y, imgWidth, imgHeight);
           x += imgWidth + colGap;
-          imagesOnPage++;
         }
         
-        const rowsOnLastPage = Math.ceil(imagesOnPage / cols);
-        drawCutLinesOnPage(cols, rowsOnLastPage);
         doc.save("grid-3x4.pdf");
       }
 
@@ -672,7 +627,6 @@ function PolaroidTransformer() {
       const { default: html2canvas } = await import('html2canvas');
       const doc = new jsPDF('p', 'mm', 'a4');
       const pageWidth = doc.internal.pageSize.getWidth();
-      const pageHeight = doc.internal.pageSize.getHeight();
       
       const margin = 10;
       const polaroidWidthMM = 60;
@@ -680,11 +634,7 @@ function PolaroidTransformer() {
       const gap = 5;
       
       const cols = 3;
-      const rows = 3;
-      const imagesPerPage = cols * rows;
-
-      let x = margin;
-      let y = margin;
+      const imagesPerPage = 9;
 
       for (let i = 0; i < polaroids.length; i++) {
         const polaroid = polaroids[i];
@@ -699,8 +649,8 @@ function PolaroidTransformer() {
         const colIndex = currentImageIndexInPage % cols;
         const rowIndex = Math.floor(currentImageIndexInPage / cols);
 
-        x = margin + colIndex * (polaroidWidthMM + gap);
-        y = margin + rowIndex * (polaroidHeightMM + gap);
+        const x = margin + colIndex * (polaroidWidthMM + gap);
+        const y = margin + rowIndex * (polaroidHeightMM + gap);
 
         const canvas = await html2canvas(element, { scale: 5, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' });
         const imgData = canvas.toDataURL('image/png');
@@ -757,10 +707,10 @@ function PolaroidTransformer() {
                 </Label>
               </div>
             </CardContent>
-            <div className="mt-6 mb-6">
+            <div className="mt-6 mb-4">
               <Label className="font-headline text-lg">2. Editar Polaroids</Label>
                {polaroids.length > 0 ? (
-                <ScrollArea className="h-72 w-full mt-2 mb-4 pr-4">
+                <ScrollArea className="h-72 w-full mt-2 pr-4">
                   <div className="space-y-4">
                       {polaroids.map(p => (
                           <div key={p.id} className={cn("flex items-center gap-4 bg-background p-2 rounded-lg shadow-sm cursor-pointer border-2", editingPolaroidId === p.id ? "border-primary" : "border-transparent")} onClick={() => setEditingPolaroidId(p.id)}>
@@ -791,7 +741,7 @@ function PolaroidTransformer() {
                   <p>Suas fotos aparecerão aqui.</p>
                 </div>
               )}
-            </div><br/>
+            </div>
              <div className="space-y-2 mt-auto">
                 <Label className="font-headline text-lg">3. Ferramentas de Edição</Label>
                 <div className="flex flex-col sm:flex-row gap-4">
@@ -887,7 +837,7 @@ function PolaroidTransformer() {
                         image={editingPolaroid.originalSrc}
                         crop={editingPolaroid.crop as {x: number, y: number}}
                         zoom={editingPolaroid.zoom}
-                        aspect={100 / 150}
+                        aspect={1}
                         onCropChange={(crop) => updatePolaroid(editingPolaroid.id, { crop })}
                         onZoomChange={(zoom) => updatePolaroid(editingPolaroid.id, { zoom })}
                         onCropComplete={(...args) => onCropComplete(editingPolaroid.id, ...args)}
