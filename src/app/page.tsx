@@ -14,7 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import getCroppedImg from "@/lib/cropImage";
-import { Upload, Download, Scissors, Loader2, Image as ImageIcon, Trash2, Crop, Camera, Copy, FileText, Images } from 'lucide-react';
+import { Upload, Download, Scissors, Loader2, Image as ImageIcon, Trash2, Crop, Camera, Copy, FileText, Images, Type } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -331,33 +331,34 @@ function GridChaveiro() {
       const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
       
       if (keychainSize === '10x15') {
-        const imgWidth = 100;
-        const imgHeight = 150;
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
-        
-        const cols = Math.floor(pageWidth / imgWidth);
-        const rows = Math.floor(pageHeight / imgHeight);
-        const imagesPerPage = cols * rows;
+          const imgWidth = 100;
+          const imgHeight = 150;
+          const pageWidth = doc.internal.pageSize.getWidth();
+          const pageHeight = doc.internal.pageSize.getHeight();
+          
+          // Two images side by side
+          const cols = Math.floor(pageWidth / imgWidth);
+          const rows = Math.floor(pageHeight / imgHeight);
+          const imagesPerPage = cols * rows;
 
-        const xMargin = (pageWidth - (cols * imgWidth)) / 2;
-        const yMargin = (pageHeight - (rows * imgHeight)) / 2;
+          const xMargin = (pageWidth - (cols * imgWidth)) / 2;
+          const yMargin = (pageHeight - (rows * imgHeight)) / 2;
 
-        for (let i = 0; i < allImagesToPrint.length; i++) {
-            const pageIndex = Math.floor(i / imagesPerPage);
-            if (i > 0 && i % imagesPerPage === 0) {
-                doc.addPage();
-            }
-            
-            const indexOnPage = i % imagesPerPage;
-            const colIndex = indexOnPage % cols;
-            const rowIndex = Math.floor(indexOnPage / cols);
-            
-            const x = xMargin + (colIndex * imgWidth);
-            const y = yMargin + (rowIndex * imgHeight);
+          for (let i = 0; i < allImagesToPrint.length; i++) {
+              const pageIndex = Math.floor(i / imagesPerPage);
+              if (i > 0 && i % imagesPerPage === 0) {
+                  doc.addPage();
+              }
+              
+              const indexOnPage = i % imagesPerPage;
+              const colIndex = indexOnPage % cols;
+              const rowIndex = Math.floor(indexOnPage / cols);
+              
+              const x = xMargin + (colIndex * imgWidth);
+              const y = yMargin + (rowIndex * imgHeight);
 
-            doc.addImage(allImagesToPrint[i], 'JPEG', x, y, imgWidth, imgHeight);
-        }
+              doc.addImage(allImagesToPrint[i], 'JPEG', x, y, imgWidth, imgHeight);
+          }
         doc.save("grid-10x15.pdf");
 
       } else {
@@ -428,7 +429,9 @@ function GridChaveiro() {
     }
   };
 
-  const aspect = SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height;
+  const aspect = keychainSize === '10x15' 
+    ? SIZES_MM[keychainSize].height / SIZES_MM[keychainSize].width
+    : SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height;
 
   return (
     <>
@@ -558,6 +561,14 @@ const SYMBOLS = {
   Mystical: ['𖤐', '✞', '✿', '𓆩𓆪', '♀', '❥', '𓂀', '⛧', '∞', '♕', '❀', '✦'],
 };
 
+const FONTS = [
+  { name: "Manuscrita", value: "'Gloria Hallelujah', cursive" },
+  { name: "Caviard", value: "'Caveat', cursive" },
+  { name: "Patrick", value: "'Patrick Hand', cursive" },
+  { name: "Marker", value: "'Permanent Marker', cursive" },
+  { name: "Rock", value: "'Rock Salt', cursive" },
+]
+
 type Polaroid = {
   id: string;
   originalSrc: string;
@@ -567,6 +578,7 @@ type Polaroid = {
   zoom: number;
   croppedAreaPixels: Area | null;
   showBorder: boolean;
+  fontFamily: string;
 };
 
 function PolaroidTransformer() {
@@ -593,6 +605,7 @@ function PolaroidTransformer() {
           zoom: 1,
           croppedAreaPixels: null,
           showBorder: true,
+          fontFamily: FONTS[0].value,
         };
         newPolaroids.push(newPolaroid);
       }
@@ -679,9 +692,11 @@ function PolaroidTransformer() {
       const polaroidWidthMM = 60;
       const polaroidHeightMM = 72;
       const gap = 5;
-      const cols = 3;
-      const rows = 3;
       
+      const cols = Math.floor((pageWidth - 2 * margin + gap) / (polaroidWidthMM + gap));
+      const rows = Math.floor((pageHeight - 2 * margin + gap) / (polaroidHeightMM + gap));
+      const imagesPerPage = cols * rows;
+
       let x = margin;
       let y = margin;
 
@@ -690,13 +705,11 @@ function PolaroidTransformer() {
         const element = finalImageRefs.current[polaroid.id];
         if (!element) continue;
 
-        if (i > 0 && i % (cols * rows) === 0) {
+        if (i > 0 && i % imagesPerPage === 0) {
           doc.addPage();
-          x = margin;
-          y = margin;
         }
         
-        const currentImageIndexInPage = i % (cols * rows);
+        const currentImageIndexInPage = i % imagesPerPage;
         const colIndex = currentImageIndexInPage % cols;
         const rowIndex = Math.floor(currentImageIndexInPage / cols);
 
@@ -795,12 +808,27 @@ function PolaroidTransformer() {
             </div><br/>
              <div className="space-y-2 mt-auto">
                 <Label className="font-headline text-lg">3. Ferramentas de Edição</Label>
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
                     {editingPolaroid && (
-                      <div className="space-y-2">
+                      <div className="space-y-2 flex-1">
                           <Label htmlFor="polaroid-zoom">Zoom</Label>
                           <Slider id="polaroid-zoom" value={[editingPolaroid.zoom]} onValueChange={([val]) => updatePolaroid(editingPolaroid.id, {zoom: val})} min={1} max={3} step={0.1} />
                       </div>
+                    )}
+                    {editingPolaroid && (
+                       <div className="space-y-2 flex-1">
+                          <Label htmlFor="polaroid-font">Fonte</Label>
+                          <Select value={editingPolaroid.fontFamily} onValueChange={(value) => updatePolaroid(editingPolaroid.id, { fontFamily: value })}>
+                            <SelectTrigger id="polaroid-font">
+                              <SelectValue placeholder="Selecione a fonte" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {FONTS.map(font => (
+                                <SelectItem key={font.value} value={font.value} style={{fontFamily: font.value}}>{font.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                       </div>
                     )}
                      <Popover open={symbolsPopoverOpen} onOpenChange={setSymbolsPopoverOpen}>
                         <PopoverTrigger asChild>
@@ -886,7 +914,7 @@ function PolaroidTransformer() {
                                 "relative w-[250px] h-[300px] bg-white p-3 flex flex-col items-center shadow-lg",
                                 editingPolaroid.showBorder && "border border-black/80"
                             )}
-                            style={{fontFamily: "'Gloria Hallelujah', cursive"}}
+                            style={{fontFamily: editingPolaroid.fontFamily }}
                             >
                             <div className="w-full h-[220px] bg-gray-300">
                                 {editingPolaroid.croppedSrc && <img src={editingPolaroid.croppedSrc} className="w-full h-full object-cover" alt="cropped preview" />}
@@ -917,7 +945,7 @@ function PolaroidTransformer() {
                     "relative w-[300px] h-[360px] bg-white p-4 flex flex-col items-center",
                     p.showBorder && "border border-black"
                   )}
-                  style={{fontFamily: "'Gloria Hallelujah', cursive"}}
+                  style={{fontFamily: p.fontFamily }}
                 >
                   <div className="w-[268px] h-[268px] bg-gray-200">
                       {p.croppedSrc && <img src={p.croppedSrc} className="w-full h-full object-cover" alt="cropped preview" />}
