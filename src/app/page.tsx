@@ -330,10 +330,11 @@ function GridChaveiro() {
       
       if (keychainSize === '10x15') {
           const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-          doc.deletePage(1); 
-
+          
           for (let i = 0; i < allImagesToPrint.length; i+=2) {
-              doc.addPage('a4', 'p');
+              if (i > 0) {
+                doc.addPage('a4', 'p');
+              }
               
               const imgWidth = 100;
               const imgHeight = 150;
@@ -348,9 +349,6 @@ function GridChaveiro() {
               if(i + 1 < allImagesToPrint.length){
                   doc.addImage(allImagesToPrint[i+1], 'JPEG', x2, y, imgWidth, imgHeight);
               }
-          }
-          if (doc.internal.pages.length > 1) {
-            doc.deletePage(1);
           }
           doc.save("grid-10x15.pdf");
 
@@ -685,8 +683,8 @@ function PolaroidTransformer() {
       const polaroidHeightMM = 72;
       const gap = 5;
       
-      const cols = Math.floor((pageWidth - 2 * margin + gap) / (polaroidWidthMM + gap));
-      const rows = Math.floor((pageHeight - 2 * margin + gap) / (polaroidHeightMM + gap));
+      const cols = 3;
+      const rows = 3;
       const imagesPerPage = cols * rows;
 
       let x = margin;
@@ -809,6 +807,7 @@ function PolaroidTransformer() {
                     )}
                     {editingPolaroid && (
                        <div className="space-y-2 flex-1">
+                        <Label>Fonte</Label>
                           <Select value={editingPolaroid.fontFamily} onValueChange={(value) => updatePolaroid(editingPolaroid.id, { fontFamily: value })}>
                             <SelectTrigger id="polaroid-font">
                               <SelectValue placeholder="Selecione a fonte" />
