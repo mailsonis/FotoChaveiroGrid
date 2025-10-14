@@ -91,8 +91,8 @@ function FotoChaveiro() {
 
       const { width: imgWidth, height: imgHeight } = SIZES_MM[keychainSize];
       const margin = 5;
-      const colGap = 10;
-      const rowGap = 10;
+      const colGap = 1;
+      const rowGap = 1;
       const pageWidth = doc.internal.pageSize.getWidth();
       const pageHeight = doc.internal.pageSize.getHeight();
 
@@ -304,26 +304,26 @@ function GridChaveiro() {
         const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
         const imgWidth = 100;
         const pageWidth = doc.internal.pageSize.getWidth();
-        let currentImage = 0;
+        let currentImageIndex = 0;
 
-        while(currentImage < allImagesToPrint.length) {
+        while(currentImageIndex < allImagesToPrint.length) {
+            if (currentImageIndex > 0) {
+                doc.addPage('a4', 'p');
+            }
+            
             const marginX = (pageWidth - 2 * imgWidth) / 3;
             const marginY = 20;
 
             const x1 = marginX;
             const y1 = marginY;
-            doc.addImage(allImagesToPrint[currentImage], 'JPEG', x1, y1, imgWidth, 0);
-            currentImage++;
+            doc.addImage(allImagesToPrint[currentImageIndex], 'JPEG', x1, y1, imgWidth, 0);
+            currentImageIndex++;
 
-            if(currentImage < allImagesToPrint.length) {
+            if(currentImageIndex < allImagesToPrint.length) {
                 const x2 = 2 * marginX + imgWidth;
                 const y2 = marginY;
-                doc.addImage(allImagesToPrint[currentImage], 'JPEG', x2, y2, imgWidth, 0);
-                currentImage++;
-            }
-
-            if(currentImage < allImagesToPrint.length) {
-                doc.addPage('a4', 'p');
+                doc.addImage(allImagesToPrint[currentImageIndex], 'JPEG', x2, y2, imgWidth, 0);
+                currentImageIndex++;
             }
         }
         doc.save("grid-10x15.pdf");
@@ -332,8 +332,8 @@ function GridChaveiro() {
         const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
         const { width: imgWidth, height: imgHeight } = SIZES_MM[keychainSize];
         const margin = 5;
-        const colGap = 10;
-        const rowGap = 10;
+        const colGap = 1;
+        const rowGap = 1;
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
 
@@ -503,7 +503,6 @@ const SYMBOLS = {
 };
 
 const FONTS = [
-  { name: "Manuscrita", value: "'Gloria Hallelujah', cursive" },
   { name: "Amatic", value: "'Amatic SC', cursive" },
   { name: "Patrick", value: "'Patrick Hand', cursive" },
   { name: "Shadows", value: "'Shadows Into Light', cursive" },
@@ -626,7 +625,6 @@ function PolaroidTransformer() {
     try {
       const { default: html2canvas } = await import('html2canvas');
       const doc = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = doc.internal.pageSize.getWidth();
       
       const margin = 10;
       const polaroidWidthMM = 60;
@@ -927,3 +925,5 @@ export default function Home() {
     </main>
   );
 }
+
+    
