@@ -328,35 +328,34 @@ function GridChaveiro() {
         }
       });
       
-      const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-      
       if (keychainSize === '10x15') {
-          doc.deletePage(1); // Start with a fresh set of pages
+          const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+          doc.deletePage(1); 
 
-          for (let i = 0; i < allImagesToPrint.length; i++) {
+          for (let i = 0; i < allImagesToPrint.length; i+=2) {
               doc.addPage('a4', 'p');
-              const pageIndex = doc.internal.pages.length - 1;
-              doc.setPage(pageIndex);
               
               const imgWidth = 100;
               const imgHeight = 150;
               const pageWidth = doc.internal.pageSize.getWidth();
-              const pageHeight = doc.internal.pageSize.getHeight();
               
               const x1 = (pageWidth - 2 * imgWidth) / 3;
               const x2 = x1 * 2 + imgWidth;
-              const y = (pageHeight - imgHeight) / 2;
+              const y = 20;
 
               doc.addImage(allImagesToPrint[i], 'JPEG', x1, y, imgWidth, imgHeight);
-              i++;
               
-              if(i < allImagesToPrint.length){
-                  doc.addImage(allImagesToPrint[i], 'JPEG', x2, y, imgWidth, imgHeight);
+              if(i + 1 < allImagesToPrint.length){
+                  doc.addImage(allImagesToPrint[i+1], 'JPEG', x2, y, imgWidth, imgHeight);
               }
+          }
+          if (doc.internal.pages.length > 1) {
+            doc.deletePage(1);
           }
           doc.save("grid-10x15.pdf");
 
       } else {
+        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
         const { width: imgWidth, height: imgHeight } = SIZES_MM[keychainSize];
         const margin = 5;
         const colGap = 0;
@@ -424,7 +423,7 @@ function GridChaveiro() {
     }
   };
 
-  const aspect = SIZES_MM[keychainSize].height / SIZES_MM[keychainSize].width
+  const aspect = SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height;
 
   return (
     <>
@@ -810,7 +809,6 @@ function PolaroidTransformer() {
                     )}
                     {editingPolaroid && (
                        <div className="space-y-2 flex-1">
-                          <Label htmlFor="polaroid-font">Fonte</Label>
                           <Select value={editingPolaroid.fontFamily} onValueChange={(value) => updatePolaroid(editingPolaroid.id, { fontFamily: value })}>
                             <SelectTrigger id="polaroid-font">
                               <SelectValue placeholder="Selecione a fonte" />
