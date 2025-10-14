@@ -307,24 +307,21 @@ function GridChaveiro() {
         let currentImageIndex = 0;
 
         while(currentImageIndex < allImagesToPrint.length) {
-            if (currentImageIndex > 0) {
+            if (currentImageIndex > 0 && currentImageIndex % 2 === 0) {
                 doc.addPage('a4', 'p');
             }
             
             const marginX = (pageWidth - 2 * imgWidth) / 3;
             const marginY = 20;
 
-            const x1 = marginX;
-            const y1 = marginY;
-            doc.addImage(allImagesToPrint[currentImageIndex], 'JPEG', x1, y1, imgWidth, 0);
-            currentImageIndex++;
+            const imageSrc = allImagesToPrint[currentImageIndex];
+            const imageIndexOnPage = currentImageIndex % 2;
 
-            if(currentImageIndex < allImagesToPrint.length) {
-                const x2 = 2 * marginX + imgWidth;
-                const y2 = marginY;
-                doc.addImage(allImagesToPrint[currentImageIndex], 'JPEG', x2, y2, imgWidth, 0);
-                currentImageIndex++;
-            }
+            const x = marginX * (imageIndexOnPage + 1) + imgWidth * imageIndexOnPage;
+            const y = marginY;
+
+            doc.addImage(imageSrc, 'JPEG', x, y, imgWidth, 0);
+            currentImageIndex++;
         }
         doc.save("grid-10x15.pdf");
 
@@ -372,7 +369,7 @@ function GridChaveiro() {
     }
   };
 
-  const aspect = keychainSize === '10x15' ? 100 / 150 : SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height;
+  const aspect = keychainSize === '10x15' ? SIZES_MM['10x15'].width / SIZES_MM['10x15'].height : SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height;
 
   return (
     <>
@@ -507,6 +504,7 @@ const FONTS = [
   { name: "Patrick", value: "'Patrick Hand', cursive" },
   { name: "Shadows", value: "'Shadows Into Light', cursive" },
   { name: "Dancing", value: "'Dancing Script', cursive" },
+  { name: "Manuscrito", value: "'Gloria Hallelujah', cursive" },
 ]
 
 type Polaroid = {
