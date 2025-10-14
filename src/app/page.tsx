@@ -336,16 +336,14 @@ function GridChaveiro() {
           const pageWidth = doc.internal.pageSize.getWidth();
           const pageHeight = doc.internal.pageSize.getHeight();
           
-          // Two images side by side
           const cols = Math.floor(pageWidth / imgWidth);
           const rows = Math.floor(pageHeight / imgHeight);
           const imagesPerPage = cols * rows;
 
-          const xMargin = (pageWidth - (cols * imgWidth)) / 2;
-          const yMargin = (pageHeight - (rows * imgHeight)) / 2;
+          const xMargin = (pageWidth - (cols * imgWidth)) / (cols + 1);
+          const yMargin = (pageHeight - (rows * imgHeight)) / (rows + 1);
 
           for (let i = 0; i < allImagesToPrint.length; i++) {
-              const pageIndex = Math.floor(i / imagesPerPage);
               if (i > 0 && i % imagesPerPage === 0) {
                   doc.addPage();
               }
@@ -354,8 +352,8 @@ function GridChaveiro() {
               const colIndex = indexOnPage % cols;
               const rowIndex = Math.floor(indexOnPage / cols);
               
-              const x = xMargin + (colIndex * imgWidth);
-              const y = yMargin + (rowIndex * imgHeight);
+              const x = xMargin + (colIndex * (imgWidth + xMargin));
+              const y = yMargin + (rowIndex * (imgHeight + yMargin));
 
               doc.addImage(allImagesToPrint[i], 'JPEG', x, y, imgWidth, imgHeight);
           }
@@ -430,7 +428,7 @@ function GridChaveiro() {
   };
 
   const aspect = keychainSize === '10x15' 
-    ? SIZES_MM[keychainSize].height / SIZES_MM[keychainSize].width
+    ? SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height
     : SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height;
 
   return (
@@ -557,15 +555,16 @@ const SYMBOLS = {
   Music: ['♪', '♫', '♩', '♬', '♭', '♮', '♯'],
   Stars: ['★', '☆', '✪', '✯', '✡', '✶'],
   Arrows: ['→', '←', '↑', '↓', '↔', '↵'],
-  Misc: ['☺', '☻', '☼', '☁', '⚡', '✿', '❄', '✔', '✖'],
+  Misc: ['☺', '☻', '☼', '☁', '⚡', '✿', '❄'],
   Mystical: ['𖤐', '✞', '✿', '𓆩𓆪', '♀', '❥', '𓂀', '⛧', '∞', '♕', '❀', '✦'],
 };
 
 const FONTS = [
   { name: "Manuscrita", value: "'Gloria Hallelujah', cursive" },
-  { name: "Caviard", value: "'Caveat', cursive" },
+  { name: "Amatic", value: "'Amatic SC', cursive" },
   { name: "Patrick", value: "'Patrick Hand', cursive" },
-  { name: "Marker", value: "'Permanent Marker', cursive" },
+  { name: "Shadows", value: "'Shadows Into Light', cursive" },
+  { name: "Dancing", value: "'Dancing Script', cursive" },
   { name: "Rock", value: "'Rock Salt', cursive" },
 ]
 
