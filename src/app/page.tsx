@@ -752,7 +752,6 @@ function PolaroidTransformer() {
                     )}
                     {editingPolaroid && (
                        <div className="space-y-2 flex-1">
-                        <Label>Fonte</Label>
                           <Select value={editingPolaroid.fontFamily} onValueChange={(value) => updatePolaroid(editingPolaroid.id, { fontFamily: value })}>
                             <SelectTrigger id="polaroid-font">
                               <SelectValue placeholder="Selecione a fonte" />
