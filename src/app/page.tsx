@@ -329,28 +329,24 @@ function GridChaveiro() {
       });
       
       if (keychainSize === '10x15') {
-          const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-          
-          for (let i = 0; i < allImagesToPrint.length; i+=2) {
-              if (i > 0) {
-                doc.addPage('a4', 'p');
-              }
-              
-              const imgWidth = 100;
-              const imgHeight = 150;
-              const pageWidth = doc.internal.pageSize.getWidth();
-              
-              const x1 = (pageWidth - 2 * imgWidth) / 3;
-              const x2 = x1 * 2 + imgWidth;
-              const y = 20;
+        const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+        const imgWidth = 100;
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const marginX = (pageWidth - 2 * imgWidth) / 3;
+        const marginY = 20;
 
-              doc.addImage(allImagesToPrint[i], 'JPEG', x1, y, imgWidth, imgHeight);
-              
-              if(i + 1 < allImagesToPrint.length){
-                  doc.addImage(allImagesToPrint[i+1], 'JPEG', x2, y, imgWidth, imgHeight);
-              }
-          }
-          doc.save("grid-10x15.pdf");
+        for (let i = 0; i < allImagesToPrint.length; i++) {
+            if (i > 0 && i % 2 === 0) {
+                doc.addPage('a4', 'p');
+            }
+            
+            const x = (i % 2 === 0) ? marginX : (2 * marginX + imgWidth);
+            const y = marginY;
+            
+            doc.addImage(allImagesToPrint[i], 'JPEG', x, y, imgWidth, 0);
+        }
+        doc.save("grid-10x15.pdf");
 
       } else {
         const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -421,7 +417,7 @@ function GridChaveiro() {
     }
   };
 
-  const aspect = SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height;
+  const aspect = keychainSize === '10x15' ? 100 / 150 : SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height;
 
   return (
     <>
@@ -646,7 +642,7 @@ function PolaroidTransformer() {
             const element = finalImageRefs.current[polaroid.id];
             if (!element) continue;
             
-            const canvas = await html2canvas(element, { scale: 4, useCORS: true, allowTaint: true, backgroundColor: null });
+            const canvas = await html2canvas(element, { scale: 5, useCORS: true, allowTaint: true, backgroundColor: null });
             const data = canvas.toDataURL('image/png');
             const link = document.createElement('a');
             link.href = data;
@@ -706,7 +702,7 @@ function PolaroidTransformer() {
         x = margin + colIndex * (polaroidWidthMM + gap);
         y = margin + rowIndex * (polaroidHeightMM + gap);
 
-        const canvas = await html2canvas(element, { scale: 4, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' });
+        const canvas = await html2canvas(element, { scale: 5, useCORS: true, allowTaint: true, backgroundColor: '#ffffff' });
         const imgData = canvas.toDataURL('image/png');
         
         doc.addImage(imgData, 'PNG', x, y, polaroidWidthMM, polaroidHeightMM);
@@ -764,7 +760,7 @@ function PolaroidTransformer() {
             <div className="mt-6 mb-6">
               <Label className="font-headline text-lg">2. Editar Polaroids</Label>
                {polaroids.length > 0 ? (
-                <ScrollArea className="h-72 w-full mt-2 pr-4">
+                <ScrollArea className="h-72 w-full mt-2 mb-4 pr-4">
                   <div className="space-y-4">
                       {polaroids.map(p => (
                           <div key={p.id} className={cn("flex items-center gap-4 bg-background p-2 rounded-lg shadow-sm cursor-pointer border-2", editingPolaroidId === p.id ? "border-primary" : "border-transparent")} onClick={() => setEditingPolaroidId(p.id)}>
@@ -863,7 +859,7 @@ function PolaroidTransformer() {
                       <DialogHeader>
                           <DialogTitle>Escolha o formato de download</DialogTitle>
                       </DialogHeader>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
                           <Button variant="outline" onClick={downloadAllAsPNG} disabled={isGenerating}>
                               {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Images className="mr-2 h-4 w-4"/>}
                               PNGs Individuais
@@ -885,36 +881,36 @@ function PolaroidTransformer() {
 
         <div className="bg-muted/30 p-4 md:p-6 flex flex-col items-center justify-center min-h-[400px] md:min-h-0 gap-8">
             {editingPolaroid ? (
-                <>
-                    <div className="relative w-full max-w-[300px] aspect-square bg-gray-200 rounded-lg shadow-inner overflow-hidden">
-                        <Cropper
-                            image={editingPolaroid.originalSrc}
-                            crop={editingPolaroid.crop as {x: number, y: number}}
-                            zoom={editingPolaroid.zoom}
-                            aspect={1}
-                            onCropChange={(crop) => updatePolaroid(editingPolaroid.id, { crop })}
-                            onZoomChange={(zoom) => updatePolaroid(editingPolaroid.id, { zoom })}
-                            onCropComplete={(...args) => onCropComplete(editingPolaroid.id, ...args)}
-                            />
-                    </div>
-                    <div>
-                        <h3 className="text-center font-headline text-lg mb-2">Pré-visualização</h3>
-                        <div 
-                            className={cn(
-                                "relative w-[250px] h-[300px] bg-white p-3 flex flex-col items-center shadow-lg",
-                                editingPolaroid.showBorder && "border border-black/80"
-                            )}
-                            style={{fontFamily: editingPolaroid.fontFamily }}
-                            >
-                            <div className="w-full h-[220px] bg-gray-300">
-                                {editingPolaroid.croppedSrc && <img src={editingPolaroid.croppedSrc} className="w-full h-full object-cover" alt="cropped preview" />}
-                            </div>
-                            <div className="w-full flex-grow flex items-center justify-center pt-2">
-                                <p className="text-center text-base text-gray-800 whitespace-pre-wrap">{editingPolaroid.text}</p>
-                            </div>
+              <div className="flex flex-col lg:flex-row items-center justify-center gap-8 w-full">
+                <div className="relative w-full max-w-[300px] aspect-square bg-gray-200 rounded-lg shadow-inner overflow-hidden">
+                    <Cropper
+                        image={editingPolaroid.originalSrc}
+                        crop={editingPolaroid.crop as {x: number, y: number}}
+                        zoom={editingPolaroid.zoom}
+                        aspect={100 / 150}
+                        onCropChange={(crop) => updatePolaroid(editingPolaroid.id, { crop })}
+                        onZoomChange={(zoom) => updatePolaroid(editingPolaroid.id, { zoom })}
+                        onCropComplete={(...args) => onCropComplete(editingPolaroid.id, ...args)}
+                        />
+                </div>
+                <div>
+                    <h3 className="text-center font-headline text-lg mb-2">Pré-visualização</h3>
+                    <div 
+                        className={cn(
+                            "relative w-[250px] h-[300px] bg-white p-3 flex flex-col items-center shadow-lg",
+                            editingPolaroid.showBorder && "border border-black/80"
+                        )}
+                        style={{fontFamily: editingPolaroid.fontFamily }}
+                        >
+                        <div className="w-full h-[220px] bg-gray-300">
+                            {editingPolaroid.croppedSrc && <img src={editingPolaroid.croppedSrc} className="w-full h-full object-cover" alt="cropped preview" />}
+                        </div>
+                        <div className="w-full flex-grow flex items-center justify-center pt-2">
+                            <p className="text-center text-base text-gray-800 whitespace-pre-wrap">{editingPolaroid.text}</p>
                         </div>
                     </div>
-                </>
+                </div>
+              </div>
             ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-center text-muted-foreground p-4">
                   <Crop className="h-16 w-16 mb-4 text-primary/20" />
