@@ -219,6 +219,7 @@ function GridChaveiro() {
   const [keychainSize, setKeychainSize] = useState('3x4');
   const [isGenerating, setIsGenerating] = useState(false);
   const { toast } = useToast();
+  const [showBorders, setShowBorders] = useState(false);
 
   const [editingImage, setEditingImage] = useState<GridImage | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -353,6 +354,11 @@ function GridChaveiro() {
           }
 
           doc.addImage(imageSrc, 'JPEG', x, y, imgWidth, imgHeight);
+          if (showBorders) {
+            doc.setDrawColor(0, 0, 0);
+            doc.setLineWidth(0.1);
+            doc.rect(x, y, imgWidth, imgHeight);
+          }
           x += imgWidth + colGap;
         }
         
@@ -395,17 +401,30 @@ function GridChaveiro() {
                 </Label>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="grid-keychain-size" className="font-headline text-lg">2. Tamanho</Label>
-                <Select value={keychainSize} onValueChange={setKeychainSize}>
-                  <SelectTrigger id="grid-keychain-size">
-                    <SelectValue placeholder="Selecione o tamanho" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.entries(SIZES_MM).map(([key, { name }]) => (
-                      <SelectItem key={key} value={key}>{name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <Label className="font-headline text-lg">2. Opções do Grid</Label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="grid-keychain-size">Tamanho</Label>
+                        <Select value={keychainSize} onValueChange={setKeychainSize}>
+                          <SelectTrigger id="grid-keychain-size">
+                            <SelectValue placeholder="Selecione o tamanho" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(SIZES_MM).map(([key, { name }]) => (
+                              <SelectItem key={key} value={key}>{name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                    </div>
+                    {keychainSize !== '10x15' && (
+                        <div className="flex flex-col justify-end">
+                            <div className="flex items-center space-x-2 mb-2">
+                                <Switch id="show-borders" checked={showBorders} onCheckedChange={setShowBorders} />
+                                <Label htmlFor="show-borders">Adicionar Bordas</Label>
+                            </div>
+                        </div>
+                    )}
+                  </div>
               </div>
             </CardContent>
           </div>
