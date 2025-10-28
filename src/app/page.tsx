@@ -50,6 +50,7 @@ function FotoChaveiro() {
   const [keychainSize, setKeychainSize] = useState('3x4');
   const [quantity, setQuantity] = useState(12);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showBorders, setShowBorders] = useState(false);
   const { toast } = useToast();
 
   const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -112,6 +113,11 @@ function FotoChaveiro() {
         }
 
         doc.addImage(croppedImage, 'JPEG', x, y, imgWidth, imgHeight);
+        if (showBorders) {
+          doc.setDrawColor(0, 0, 0);
+          doc.setLineWidth(0.1);
+          doc.rect(x, y, imgWidth, imgHeight);
+        }
         x += imgWidth + colGap;
       }
       
@@ -169,9 +175,16 @@ function FotoChaveiro() {
                       <Input id="quantity" type="number" value={quantity} onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))} min="1" />
                     </div>
                 </div>
+                <div className="space-y-2">
+                    <Label className="font-headline text-lg">4. Opções</Label>
+                    <div className="flex items-center space-x-2">
+                        <Switch id="show-borders-single" checked={showBorders} onCheckedChange={setShowBorders} />
+                        <Label htmlFor="show-borders-single">Adicionar Bordas</Label>
+                    </div>
+                </div>
                 {imageSrc && (
                   <div className="space-y-2">
-                    <Label htmlFor="zoom" className="font-headline text-lg">4. Ajuste o Zoom</Label>
+                    <Label htmlFor="zoom" className="font-headline text-lg">5. Ajuste o Zoom</Label>
                     <Slider id="zoom" value={[zoom]} onValueChange={([val]) => setZoom(val)} min={1} max={3} step={0.1} />
                   </div>
                 )}
@@ -307,13 +320,11 @@ function GridChaveiro() {
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
         let currentImageIndex = 0;
-        let pageCount = 0;
-
+        
         while(currentImageIndex < allImagesToPrint.length) {
-            if (pageCount > 0) {
+            if (currentImageIndex > 0) {
                 doc.addPage('a4', 'p');
             }
-            pageCount++;
             
             const imagesOnThisPage = allImagesToPrint.slice(currentImageIndex, currentImageIndex + 2);
             const marginX = (pageWidth - (imagesOnThisPage.length * imgWidth)) / (imagesOnThisPage.length + 1);
@@ -378,7 +389,8 @@ function GridChaveiro() {
     }
   };
 
-  const aspect = SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height;
+  const aspect = keychainSize === '10x15' ? SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height : SIZES_MM[keychainSize].width / SIZES_MM[keychainSize].height;
+
 
   return (
     <>
@@ -944,5 +956,3 @@ export default function Home() {
     </main>
   );
 }
-
-    
